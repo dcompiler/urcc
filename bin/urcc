@@ -1,0 +1,70 @@
+#!/usr/bin/ruby
+
+# URCC directory
+Urcc_path = "/Users/cding/urcc"
+
+# Need GCC 4.2.x
+Gcc42_path = "/usr/bin/gcc-4.2"
+Yourgcc = Gcc42_path+"/gcc-4.2"
+
+# The main driver for our rcc
+$LOAD_PATH.unshift(Urcc_path+"/src")
+require "gimple/gimp2raw.rb"
+require "gimple/raw2ast.rb"
+
+module Execute
+  def execute( cmd )
+    puts "#{cmd}"
+    `#{cmd}`
+  end
+end
+
+include Execute
+
+def main
+  filename = ARGV[0]
+  if not filename or filename[-2..-1] != ".c" then
+    puts "Please specify a C file."
+    return
+  end
+
+  if not File.file?(filename) then
+    puts "File #{filename} does not exist."
+    return
+  end
+  
+  # we need a way to determine the location of our own gcc
+  gccversion = `#{Yourgcc} --version`
+  if (gccversion =~ /\(GCC\) 4.2/) == nil
+    puts "Please use GCC 4.2.2"
+    puts "Only GCC 4.2.2 has been tested."
+    return
+  end
+  
+  execute "#{Yourgcc} -O0 -fdump-tree-gimple-raw -c #{filename}"
+  
+  filename = filename.split("/")[-1]
+  execute "rm #{filename[0..-3]+".o"}"
+  gimple_file = `ls #{filename}.*.gimple`.chop # chop "\n"
+  prog = URCCFE.new(gimple_file).astroot
+
+  ######################################################
+  # Optimizations are here for "prog"
+
+  ######################################################
+  
+  c_file = filename[0..-3]+"_urcc.c" 
+  file = File.new(c_file, "w")
+  file << prog.c_dump  
+  file.close
+
+  binary_file = filename[0..-3]
+  execute "#{Yourgcc} -O0 #{c_file} -o #{binary_file}"
+
+  # enable the following lines if you do not want to keep 
+  # intermediate files
+  #`rm #{gimple_file}`
+  #`rm #{c_file}`
+end
+
+main
