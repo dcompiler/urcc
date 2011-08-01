@@ -1,4 +1,4 @@
-require "CFG"
+require "cfg/cfg"
 
 class SSAPass
 	attr_reader :cfg

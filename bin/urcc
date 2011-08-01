@@ -4,8 +4,8 @@
 Urcc_path = "/Users/cding/urcc"
 
 # Need GCC 4.2.x
-Gcc42_path = "/usr/bin/gcc-4.2"
-Yourgcc = Gcc42_path+"/gcc-4.2"
+Gcc42_path = "/usr/bin"
+Yourgcc = Gcc42_path+"/gcc"
 
 # The main driver for our rcc
 $LOAD_PATH.unshift(Urcc_path+"/src")
