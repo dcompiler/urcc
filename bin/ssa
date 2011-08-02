@@ -6,14 +6,18 @@ $LOAD_PATH.unshift(Urcc_path+"/bin")
 
 require 'ssa/ssa'
 
-def compile( prog )
+$Passes = $Passes || Array.new
+
+ssa_pass = Proc.new do |prog|
   cfg = CFG.new(prog)
+  File.new("cfg.txt", "w").puts cfg.to_graph
   ssa = SSAPass.new(cfg)
   # tssa = TSSAPass.new(cfg)
-  print cfg.c_dump
+  puts cfg.c_dump
   # opt = OptPass.new(cfg)
   cfg.update_prog
 end
 
-puts $LOAD_PATH
+$Passes << ["ssa", ssa_pass]
+
 load 'urcc'

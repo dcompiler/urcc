@@ -1,14 +1,16 @@
 #!/usr/bin/ruby
 
 # URCC directory
-Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
+if not Module.const_defined?(:Urcc_path)
+  Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
+  $LOAD_PATH.unshift(Urcc_path+"/src")
+end
 
 # Need GCC 4.2.x
 Gcc42_path = "/usr/bin"
 Yourgcc = Gcc42_path+"/gcc"
 
 # The main driver for our rcc
-$LOAD_PATH.unshift(Urcc_path+"/src")
 require "gimple/gimp2raw.rb"
 require "gimple/raw2ast.rb"
 
@@ -52,8 +54,13 @@ def main
   ######################################################
   # Optimizations are here for "prog"
 
-  if self.respond_to?( :compile )
-    compile( prog )
+  if $Passes != nil
+    $Passes.each do |opt| 
+      puts "invoking #{opt[0]} pass"
+      opt[1].call( prog )
+    end
+  else
+    puts 'no optimization specified'
   end
 
   ######################################################
