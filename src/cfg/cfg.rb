@@ -129,14 +129,16 @@ class FuncInfo
 		def c_ssa_dump
 			output = @dead==true ? "D " : ""
 			output += "#{@val} " if @val
+                  ssa_uses =  "#{(0...@vuse.size).collect{ |i| "#{ssa_repl_name(vuse_name(i))} #{@vconst[ssa_repl_name(vuse_name(i))]}"} * ','}"
 			if @stat
-				@vdef.each_index { |i| output += "#{@stat.class == Ast::GotoStat ? @vdef[0] : ssa_repl_name(vdef_name(i))}, " }
-				output += " = "
-				@vuse.each_index { |i| output += "#{ssa_repl_name(vuse_name(i))} #{@vconst[ssa_repl_name(vuse_name(i))]}, "}
+                          output += "#{(0...@vdef.size).collect{ |i| "#{@stat.class == Ast::GotoStat ? @vdef[0] : ssa_repl_name(vdef_name(i))}"} * ','}"
+				# @vdef.each_index { |i| output += "#{@stat.class == Ast::GotoStat ? @vdef[0] : ssa_repl_name(vdef_name(i))}, " }
+                          output += " = #{ssa_uses}"
+				# @vuse.each_index { |i| output += "#{ssa_repl_name(vuse_name(i))} #{@vconst[ssa_repl_name(vuse_name(i))]}, "}
 			else
-				p = ""
-				@vuse.each_index { |i| p += "#{ssa_repl_name(vuse_name(i))} #{@vconst[ssa_repl_name(vuse_name(i))]}, " }
-				output += "#{ssa_repl_name(vdef_name(0))} = phi( #{p} )"
+				# p = ""
+				# @vuse.each_index { |i| p += "#{ssa_repl_name(vuse_name(i))} #{@vconst[ssa_repl_name(vuse_name(i))]}, " }
+				output += "#{ssa_repl_name(vdef_name(0))} = phi( #{ssa_uses} )"
 			end
 			return output
 		end
