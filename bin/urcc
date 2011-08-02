@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 # URCC directory
-Urcc_path = "/Users/cding/urcc"
+Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
 
 # Need GCC 4.2.x
 Gcc42_path = "/usr/bin"
@@ -47,9 +47,14 @@ def main
   execute "rm #{filename[0..-3]+".o"}"
   gimple_file = `ls #{filename}.*.gimple`.chop # chop "\n"
   prog = URCCFE.new(gimple_file).astroot
+  execute "rm #{gimple_file}"
 
   ######################################################
   # Optimizations are here for "prog"
+
+  if self.respond_to?( :compile )
+    compile( prog )
+  end
 
   ######################################################
   
