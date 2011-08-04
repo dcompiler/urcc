@@ -647,8 +647,10 @@ class CFG
       f.blocks.each { |b|
         b.out.each { |o| c_str += "\t\t#{b.name} -> #{o.name}\n" }
       }
-      c_str += "\t}\n\n"
+      c_str += "\t};\n\n"
     }
+
+    c_str[-3] = ' '
     
     # write function call to graph file
     funcInfo.each { |f| f.funcCall.each { |c|
