@@ -9,13 +9,20 @@ end
 
 class << Type
   def str2type( str )
-    init_base_types if @types == nil
+    return nil unless valid?( str )
     return @types[ str ] if @types[ str ] != nil
-    if str[-1] = '*'
+    if str[-1..-1] == '*'
       deref = str[0..-2]
       @types[ str ] = AddrType.new( str, Type.str2type( deref ) )
     end
     return @types[ str ]
+  end
+
+  def valid?( str )
+    init_base_types if @types == nil
+    return true if @types[ str ] != nil
+    return valid?( str[0..-2] ) if str[-1..-1] == '*'
+    return false
   end
 
   private

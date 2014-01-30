@@ -1,6 +1,15 @@
 
 require 'type'
 
+describe "Type.valid?" do
+  it "checks for proper type string" do
+    Type.valid?( "i32" ).should eq( true )
+    Type.valid?( "i1***" ).should eq( true )
+    Type.valid?( "adfa" ).should eq( false )
+  end
+end
+
+
 describe "Type.str2type" do
   it "creates basic type objects" do
     int = Type.str2type( "i32" )
