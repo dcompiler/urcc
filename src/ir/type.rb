@@ -1,7 +1,7 @@
 
 class Type
   attr_reader :name, :size # size in bits
-  private
+  private_class_method :new
   def initialize( name, size )
     @name, @size = name, size
   end
@@ -38,7 +38,6 @@ end
 class AddrType < Type
   attr_reader :deref  # type after de-reference
   AddrSize = 32
-  private
   def initialize( name, deref )
     @name, @size = name, AddrSize
     @deref = deref
