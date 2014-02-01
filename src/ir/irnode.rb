@@ -16,7 +16,7 @@ end
 #
 class Var < IRNode
   attr_accessor :type
-  def initialize( var, type == nil )
+  def initialize( var, type = nil )
     @name, @type = var, type
   end
 

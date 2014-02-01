@@ -1,13 +1,17 @@
 require 'irnode'
 
+# The lookahead method finds the first Literal to choose the right
+# parse.  The parse method succeeds and consumes the input.
+
 class Literal < IRNode
-  def parse( str )
-    return self if @name == str
+  def lookahead( token )
+    return self if @name == token.downcase
     return nil
   end
 
-  def match( str )
-    return self if @name == str
+  def parse( line, file )
+    token = line.shift
+    return self if @name == token.downcase
     raise "#{@name} literal expected but have #{str}"
   end
 end
@@ -15,21 +19,17 @@ end
 class << Literal
   def []( str )
     @lits = Hash.new if @lits == nil
-    @types[ str ] = Literal.new( str ) if @types[ str ] == nil
-    return @types[ str ]
+    str.downcase!
+    @lits[ str ] = Literal.new( str ) if @lits[ str ] == nil
+    return @lits[ str ]
   end
 end
 
 module InputParse
   attr_reader :input_type
 
-  def set_input_type( type )
-    raise "wrong input type #{type}" unless type == :file or type == :line
-    @input_type = type
-  end
-
   # return parsed line as an array
-  def next_line( line, file )
+  def next_line( file )
     line = file.readline
     # remove the comment if any
     line = line[0...line.index(";")] if line.index(";") != nil
@@ -47,74 +47,75 @@ module InputParse
   end # next_line
 end
 
-class AltRule
-  attr_reader :choices
-  def initialize
-    @choices = [ ]
-    yield @choices
+class Rule
+  attr_reader :subrule1, :input_type
+  include InputParse
+  def initialize( type )
+    raise "wrong input type #{type}" unless type == :file or type == :line
+    @input_type = type
+  end
+
+  # dive down until the first token
+  def lookahead( token )
+    return self if @subrule1.lookahead( token ) != nil
+
+    return @subrule1.lookahead( token ) if @subrule1.is_a? Rule
+    raise "invalid LL(1) grammar (the first elem must be a Literal)" unless @subrule1.is_a? Literal
+    return @subrule1.check( token )
+  end
+end
+
+class AltRule < Rule
+  attr_accessor :choices
+  def initialize( input_type, choices = nil )
+    super( input_type )
+    @choices = choices
+    yield self if @choices == nil
+  end
+
+  def lookahead( token )
+    match = nil
+    @choices.each do |choice|
+      r = choice.lookahead( token )
+      raise "multiple matches found in AltRule #{self}" if r != nil and match != nil
+      match = r if r != nil
+    end
+    return match
   end
 
   def parse( line, file )
     # choose the rule based on the first element, i.e. LL(1)
-    chosen = nil
-    str = line[0]
-    @choices.each do |rule|
-      raise "SeqRule expected" unless rule.class == SeqRule
-      match = nil
-      if rule.input_type == :file
-        match = rule.sequence[0].parse( line.clone, file )
-      else
-        match = rule.sequence[0].parse( str, file )
-      end
-      if match != nil
-        if chosen != nil
-          chosen = rule
-        else
-          raise "multiple matches, #{chosen} and #{rule}"
-        end
-      end # match
-    end # choices
-
-    return chosen.parse( line, file )
+    choice = @choices.find{ |c| c.lookahead( line[0] ) != nil }
+    return choice.parse( line, file )
   end # parse
+
 end # AltRule
 
-class SeqRule
+class SeqRule < Rule
   attr_reader :sequence, :action
-  def initialize( sequence, &action )
+  def initialize( input_type, sequence, &action )
+    super( input_type )
     @sequence, @action = sequence, action
   end
 
   def parse( line, file )
     result = [ ]
     @sequence.each do |elem|
-      case # elem  # checking the class using the === operator
-        when elem.is_a?(Literal)
-          str = line.shift
-          elem.match( str )
-        when (elem.is_a?(AltRule) or elem.is_a?(RepRule)) 
-          # raise "need a :line rule" unless elem.input_type == :line
-          # line is consumed in place and changed when return
-          result << elem.parse( line, file )
-          raise "error" unless result[-1] != nil
-        else
-          # elem must be an IRNode
-          raise "#{elem} is not an IRNode" unless elem.is_a?( IRNode )
-          str = line.shift
-          result << elem.parse( str )
-      end # case
+      r = elem.parse( line, file )
+      result << r if not r.is_a? Literal
+      line = next_line( file ) if elem.input_type == :file
     end # sequence
 
     return action.call( *result )
   end # parse
 end # SeqRule
 
-class RepRule  # repetition rule
-  include InputParse
+class RepRule < Rule # repetition rule
   attr_reader :unit_rule
   # RepRule parses a file, while other rules parse a line.
   # if nil, repetition ends at the end of line or end of file
-  def initialize( unit, symbol_after_end = [] )
+  def initialize( input_type, unit, symbol_after_end = [] )
+    super( input_type )
     raise "need a SeqRule or AltRule" unless unit.class == SeqRule or unit.class == AltRule
     @unit_rule = unit
     @symbol_after_end = symbol_after_end
@@ -126,6 +127,7 @@ class RepRule  # repetition rule
     line = next_line( file )
     rest = self.parse( line, file )
     rest.unshift( head )
+    line = next_line( file ) if elem.input_type == :file
     return rest
   end
 end
