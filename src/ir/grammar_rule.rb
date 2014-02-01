@@ -1,29 +1,7 @@
-require 'irnode'
+require 'token'
 
 # The lookahead method finds the first Literal to choose the right
 # parse.  The parse method succeeds and consumes the input.
-
-class Literal < IRNode
-  def lookahead( token )
-    return self if @name == token.downcase
-    return nil
-  end
-
-  def parse( line, file )
-    token = line.shift
-    return self if @name == token.downcase
-    raise "#{@name} literal expected but have #{str}"
-  end
-end
-
-class << Literal
-  def []( str )
-    @lits = Hash.new if @lits == nil
-    str.downcase!
-    @lits[ str ] = Literal.new( str ) if @lits[ str ] == nil
-    return @lits[ str ]
-  end
-end
 
 module InputParse
   attr_reader :input_type
@@ -31,19 +9,8 @@ module InputParse
   # return parsed line as an array
   def next_line( file )
     line = file.readline
-    # remove the comment if any
-    line = line[0...line.index(";")] if line.index(";") != nil
-    line = line.split
-    elems = [ ]
-    line.each do |e|
-      if e[-1..-1] != ','
-        elems << e
-      else
-        elems << e[0..-2]
-        elems << ','
-      end
-    end # comma fixing
-    return elems
+    line = Token.tokenize( line )
+    return line
   end # next_line
 end
 
@@ -81,6 +48,7 @@ class AltRule < Rule
       raise "multiple matches found in AltRule #{self}" if r != nil and match != nil
       match = r if r != nil
     end
+
     return match
   end
 
@@ -100,15 +68,20 @@ class SeqRule < Rule
     @sequence, @action = sequence, action
   end
 
+  def lookahead( token )
+    return @sequence[0].lookahead( token )
+  end
+
   def parse( line, file )
     result = [ ]
     @sequence.each do |elem|
       r = elem.parse( line, file )
       result << r if not r.is_a? Literal
-      line = next_line( file ) if elem.input_type == :file
+      line = next_line( file ) if elem.is_a? Rule and elem.input_type == :file
     end # sequence
 
-    return action.call( *result )
+    return result if action == nil
+    return action.call( *result ) 
   end # parse
 end # SeqRule
 
@@ -125,11 +98,10 @@ class RepRule < Rule # repetition rule
 
   def parse( line, file )
     return [ ] if line == nil or symbol_after_end.include?( line[0] )
-    head = @unit_rule.parse
-    line = next_line( file )
+    head = @unit_rule.parse( line, file )
+    line = next_line( file ) if @unit_rule.input_type == :file
     rest = self.parse( line, file )
     rest.unshift( head )
-    line = next_line( file ) if elem.input_type == :file
     return rest
   end
 end

@@ -3,10 +3,15 @@ class IRNode
   def initialize( str )
     @name = str
   end
+
+  # The parser interface for all IRNodes
+  def parse( line, file )
+    return scan( line.shift )
+  end
 end
 
 class LabelStmt < IRNode
-  def parse( str )
+  def scan( str )
     return nil unless str[-1..-1] == ':'
     return LabelStmt.new( str[0..-2] )
   end
@@ -20,7 +25,7 @@ class Var < IRNode
     @name, @type = var, type
   end
 
-  def parse( str )
+  def scan( str )
     return Var.new( str ) if str[0..0] == '%'
     return nil
   end
