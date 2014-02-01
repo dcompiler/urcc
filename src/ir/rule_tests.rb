@@ -40,10 +40,9 @@ end
 
 module ExampleRules
   def initialize
-    @alt = AltRule.new( :line ) do |a| 
-      a.choices = [ Literal["yes"], Literal["NO!"] ]
-      raise "identical choices found #{self}" unless a.choices.uniq.size == a.choices.size
-    end
+    @alt = AltRule.new(:line){ |a| a.choices = [ Literal["yes"], Literal["NO!"] ] }
+    @nested_alt = AltRule.new(:line){ |a| a.choices = [ Literal["Maybe"], @alt ] }
+    @line = [ "Yes", "Madam" ]
   end
 end
 
@@ -52,8 +51,10 @@ describe "AltRule#parse" do
   it "parses literals" do
     @alt.lookahead( "yes" ).should_not eq( nil )
     @alt.lookahead( "bluh" ).should eq( nil )
-    line = [ "Yes", "Madam" ]
+    line = @line.clone
     file = nil
     @alt.parse( line, file ).should eq( Literal["yes"] )
+    line.should eq( @line[1..-1] )
+    @nested_alt.parse( @line.clone, file ).should eq( Literal["yes"] )
   end    
 end

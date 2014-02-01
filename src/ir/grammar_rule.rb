@@ -71,6 +71,7 @@ class AltRule < Rule
     super( input_type )
     @choices = choices
     yield self if @choices == nil
+    raise "identical choices found #{self}" unless @choices.uniq.size == @choices.size
   end
 
   def lookahead( token )
@@ -86,6 +87,7 @@ class AltRule < Rule
   def parse( line, file )
     # choose the rule based on the first element, i.e. LL(1)
     choice = @choices.find{ |c| c.lookahead( line[0] ) != nil }
+    raise "no rule found in AltRule for #{line}" if choice == nil
     return choice.parse( line, file )
   end # parse
 
