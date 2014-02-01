@@ -8,14 +8,18 @@ module InputParse
 
   # return parsed line as an array
   def next_line( file )
-    line = file.readline
+    begin
+      line = file.readline
+    rescue EOFError
+      return nil
+    end
     line = Token.tokenize( line )
+    return next_line( file ) if line == [ ]  # skip empty lines
     return line
   end # next_line
 end
 
 class Rule
-  attr_reader :subrule1, :input_type
   include InputParse
   def initialize( type )
     raise "wrong input type #{type}" unless type == :file or type == :line
@@ -55,7 +59,7 @@ class AltRule < Rule
   def parse( line, file )
     # choose the rule based on the first element, i.e. LL(1)
     choice = @choices.find{ |c| c.lookahead( line[0] ) != nil }
-    raise "no rule found in AltRule for #{line}" if choice == nil
+    raise "no rule found in AltRule #{@choices * ' '} for #{line * ' '}" if choice == nil
     return choice.parse( line, file )
   end # parse
 
@@ -73,11 +77,12 @@ class SeqRule < Rule
   end
 
   def parse( line, file )
+# puts line # if @input_type == :file
     result = [ ]
     @sequence.each do |elem|
       r = elem.parse( line, file )
       result << r if not r.is_a? Literal
-      line = next_line( file ) if elem.is_a? Rule and elem.input_type == :file
+      line = next_line( file ) if @input_type == :file
     end # sequence
 
     return result if action == nil
@@ -85,7 +90,7 @@ class SeqRule < Rule
   end # parse
 end # SeqRule
 
-class RepRule < Rule # repetition rule
+class RepRule < Rule # repetition rule: 0, 1, or more times
   attr_reader :unit_rule
   # RepRule parses a file, while other rules parse a line.
   # if nil, repetition ends at the end of line or end of file
@@ -93,15 +98,23 @@ class RepRule < Rule # repetition rule
     super( input_type )
     raise "need a SeqRule or AltRule" unless unit.class == SeqRule or unit.class == AltRule
     @unit_rule = unit
-    @symbol_after_end = symbol_after_end
+    @symbol_after_end = symbol_after_end.is_a?(Array)? symbol_after_end : [ symbol_after_end ]
+  end
+
+  def lookahead( token )
+    if @unit_rule.lookahead( token ) == nil
+      return @symbol_after_end.find{ |s| s == token }
+    else
+      return nil
+    end
   end
 
   def parse( line, file )
-    return [ ] if line == nil or symbol_after_end.include?( line[0] )
+    return [ ] if line == nil or @symbol_after_end.include?( line[0] )
     head = @unit_rule.parse( line, file )
-    line = next_line( file ) if @unit_rule.input_type == :file
+    line = next_line( file ) if @input_type == :file
     rest = self.parse( line, file )
-    rest.unshift( head )
+    rest.unshift( head ) unless head.is_a? Literal
     return rest
   end
 end
