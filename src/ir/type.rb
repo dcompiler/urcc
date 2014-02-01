@@ -1,7 +1,7 @@
 
 class Type
   attr_reader :name, :size # size in bits
-  private_class_method :new
+  # private_class_method :new
   def initialize( name, size )
     @name, @size = name, size
   end
@@ -24,6 +24,9 @@ class << Type
     return valid?( str[0..-2] ) if str[-1..-1] == '*'
     return false
   end
+
+  alias [] str2type
+  alias parse []
 
   private
   def init_base_types

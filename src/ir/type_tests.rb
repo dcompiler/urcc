@@ -26,4 +26,12 @@ describe "Type.str2type" do
     intpp.deref.should eq( intp )
   end
 end
+
+describe "Type.[ ]" do
+  it "creates basic type objects" do
+    int = Type[ "i32" ]
+    int.should eq(Type[ "i32" ] )
+  end
+end
+
     
