@@ -124,7 +124,7 @@ describe "AltRule#parse" do
   end
 
   it "parses nested AltRules" do
-    @nested_alt = AltRule.new(:line){ |a| a.choices = [ Literal["Maybe"], @alt ] }
+    @nested_alt = AltRule.new(:line, [ Literal["Maybe"], @alt ] )
     @nested_alt.parse( @line.clone, nil ).should eq( Literal["yes"] )
   end
 end

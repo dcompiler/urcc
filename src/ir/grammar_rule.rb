@@ -37,11 +37,9 @@ class Rule
 end
 
 class AltRule < Rule
-  attr_accessor :choices
   def initialize( input_type, choices = nil )
     super( input_type )
     @choices = choices
-    yield self if @choices == nil
     raise "identical choices found #{self}" unless @choices.uniq.size == @choices.size
   end
 
@@ -66,7 +64,6 @@ class AltRule < Rule
 end # AltRule
 
 class SeqRule < Rule
-  attr_reader :sequence, :action
   def initialize( input_type, sequence, &action )
     super( input_type )
     @sequence, @action = sequence, action
@@ -85,24 +82,22 @@ class SeqRule < Rule
       line = next_line( file ) if @input_type == :file
     end # sequence
 
-    return result if action == nil
-    return action.call( *result ) 
+    return result if @action == nil
+    return @action.call( *result ) 
   end # parse
 end # SeqRule
 
 class RepRule < Rule # repetition rule: 0, 1, or more times
-  attr_reader :unit_rule
-  # RepRule parses a file, while other rules parse a line.
-  # if nil, repetition ends at the end of line or end of file
+  # if [], repetition ends at the end of line or end of file
   def initialize( input_type, unit, symbol_after_end = [] )
     super( input_type )
     raise "need a SeqRule or AltRule" unless unit.class == SeqRule or unit.class == AltRule
-    @unit_rule = unit
+    @kernel = unit
     @symbol_after_end = symbol_after_end.is_a?(Array)? symbol_after_end : [ symbol_after_end ]
   end
 
   def lookahead( token )
-    if @unit_rule.lookahead( token ) == nil
+    if @kernel.lookahead( token ) == nil
       return @symbol_after_end.find{ |s| s == token }
     else
       return nil
@@ -111,7 +106,7 @@ class RepRule < Rule # repetition rule: 0, 1, or more times
 
   def parse( line, file )
     return [ ] if line == nil or @symbol_after_end.include?( line[0] )
-    head = @unit_rule.parse( line, file )
+    head = @kernel.parse( line, file )
     line = next_line( file ) if @input_type == :file
     rest = self.parse( line, file )
     rest.unshift( head ) unless head.is_a? Literal
