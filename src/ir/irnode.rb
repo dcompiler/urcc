@@ -3,11 +3,6 @@ class IRNode
   def initialize( str )
     @name = str
   end
-
-  # The parser interface for all IRNodes
-  def parse( line, file )
-    return scan( line.shift )
-  end
 end
 
 class LabelStmt < IRNode

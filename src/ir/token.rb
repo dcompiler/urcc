@@ -7,13 +7,37 @@ class Token
   def initialize( str )
     @tname = str
   end
-end
+
+  # Input stream class.  Only one object for a file.
+  class Input
+    attr_reader :line
+    def initialize( file )
+      @file = file
+      next_line
+    end
+
+    # a line is an array of words
+    def next_line
+      begin
+        @line = @file.readline
+        @line = Token.tokenize( line )
+        next_line if @line == [ ]  # skip empty lines
+      rescue EOFError
+        @line = nil
+      end
+    end # next_line
+  end # Token::Input
+end # Token
 
 class << Token
   # The parser interface for all Token child classes except for Literal.
   # First use of meta-class inheritance by CD, on 2/1/2014.
-  def parse( line, file )
-    return scan( line.shift )
+  def parse( input )
+    return scan( input.line.shift )
+  end
+
+  def lookahead( token )
+    return scan( token )
   end
 
   def tokenize( str )
@@ -70,8 +94,8 @@ class Literal < Token
     return nil
   end
 
-  def parse( line, file )
-    token = line.shift
+  def parse( input )
+    token = input.line.shift
     return self if @tname == token.downcase
     raise "#{@tname} literal expected but have #{str}"
   end
