@@ -1,0 +1,64 @@
+
+TOKEN SPECIFICATION
+
+Tokens are basic units of parsing.  They are implemented in Token classes in repos/src/ir/parser/token.rb.  The base type is Token and the derived types are
+
+   Literal: fixed strings for separators and reserved words, e.g. ',' or 'if'.  Capital letters are downcased.
+
+   Text: strings that beging with special characters, "%", "@", "i" currently.
+
+   Number: may be both integer or float
+
+   Str: stirngs in quotes, not yet implemented
+
+
+GRAMMAR SPECIFICATION
+
+There are three grammar rules as three rule classes in repose/src/ir/parser/grammar_rule.rb.  The three classes are SeqRule for a sequence, AltRule for alternation/selection, and RepRule for repetition.  To construct a rule is to create an object in one of these classes.  
+
+Every rule has an input type, which is either :line or :file.  The former means that the rule expands to elements in a single text line.  The latter means that each rule element occupies complete lines.  For example, "%x = 3" is parsed by a :line rule.
+
+The rules, their methods and examples are as follows.
+
+SeqRule
+  
+The constructor is new( input_type, array ), where the array gives the sequence of rule elements.  For example, if we add a rule to parse two literals, "hi world".  The rule is 
+
+   SeqRule.new( :line, [ Literal["hi"], Literal["world"] ] )
+
+We can create intermediate rules.  Each is equivalent of a non-terminal in a context-free grammar.  We have
+
+   a = SeqRule.new( :line, [ Literal["hi"] ] )
+   b = SeqRule.new( :line, [ Literal["world"] ] )
+   c = SeqRule.new( :line, [ a, b ] )
+
+AltRule
+
+The constructor is new( input_type, array ), where the array gives the alternative rule elements.  For example, the following rule chooses an answer:
+
+  yesno = AltRule.new( :line, [ Literal["Yes"], Literal["No"] ] )
+
+RepRule
+
+The constructor is new( input_type, kernel_rule, end_symbols ), where the kernel rule is repated 0 or more times before the end symbols.  Note that the end symbols are not part of the rule in that the parsing of the rule stops at an end symbol but does not consume it.  The end_symbols parameter can be a single token or an array of tokens.  It can be omitted (nil), in which case parsing finishes at the end of a line (if a :line rule) or the end of the input file (if a :file rule).  
+
+For example, the following rule
+
+   AltRule.new( :line, yesno, "Madam" )
+
+parses a series of 0 or more yes/no answers until it sees the word "Madam" in the line.
+
+
+GRAMMAR RULE ACTIONS
+
+The SeqRule can optionally take a code block (an anonymous function).  The parameters to the code block includes all non-Literal tokens.  For example, the following parses a typed variable string:
+
+  var_decl_rule = SeqRule.new(:line, [ Text, Text, Literal[","] ] ) { | type, var |  "variable #{var} has type #{type}" }
+
+When parsing "i32 %x," the comma is matched and the two non-literal tokens are passed to the code block.  The result of the code block is returned.  The example code returns a string.  A real parser may look up and return an object representing the variable named "%x".
+
+The two other rule types, AltRule and RepRule, do not accept a code block.  AltRule returns the result of the matching rule.  RepRule returns the result in an array.
+
+
+
+
