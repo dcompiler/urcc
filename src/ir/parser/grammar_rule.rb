@@ -1,4 +1,4 @@
-require 'token'
+require_relative 'token'
 
 # The lookahead method finds the first Literal to choose the right
 # parse.  The parse method succeeds and consumes the input.
@@ -80,6 +80,7 @@ class RepRule < Rule # repetition rule: 0, 1, or more times
   end
 
   def parse( input )
+    input.unget_line if input.line != nil and @input_type == :file and @symbol_after_end.include?( input.line[0] )
     return [ ] if input.line == nil or @symbol_after_end.include?( input.line[0] )
     head = @kernel.parse( input )
     input.next_line if @input_type == :file

@@ -1,3 +1,4 @@
+#include <stdio.h>
 
 #define Size 12
 #define a(i,j) a[i+j*Size]

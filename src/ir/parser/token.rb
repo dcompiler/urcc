@@ -13,19 +13,31 @@ class Token
     attr_reader :line
     def initialize( file )
       @file = file
+      @unget_once = false
+      @last_line = nil
       next_line
     end
 
     # a line is an array of words
     def next_line
       begin
-        @line = @file.readline
-        @line = Token.tokenize( line )
+        if @unget_once == true
+          @unget_once = false
+        else
+          @last_line = @file.readline
+        end
+        @line = Token.tokenize( @last_line )
         next_line if @line == [ ]  # skip empty lines
       rescue EOFError
         @line = nil
       end
     end # next_line
+
+    def unget_line
+      begin
+        @unget_once = true
+      end
+    end
   end # Token::Input
 end # Token
 
@@ -38,6 +50,21 @@ class << Token
 
   def lookahead( token )
     return scan( token )
+  end
+  
+  def _split( strs, del ) 
+    elems = [ ]
+    strs.each do |e|
+      pos = e.index(del)
+      if pos 
+        elems << e[0..pos-1] if pos != 0
+        elems << del
+        elems << e[pos+1..-1] if pos != e.length-1
+      else
+        elems << e
+      end
+    end
+    return elems
   end
 
   def tokenize( str )
@@ -54,6 +81,9 @@ class << Token
         elems << ','
       end
     end # comma fixing
+    elems = _split(elems, '(')
+    elems = _split(elems, ')')
+    print elems, "\n"
     return elems
   end
 end
@@ -76,9 +106,19 @@ end
 
 class << Number
   def scan( str )
-    return nil unless str.match /^[0-9]*[.]?[0-9]*$/
-    return str.to_f if str.match /^[0-9]*[.][0-9]*$/
+    return nil unless str.match /^[-+]?[0-9]*[.]?[0-9]*$/
+    return str.to_f if str.match /^[-+]?[0-9]*[.][0-9]*$/
     return str.to_i
+  end
+end
+
+class Label < Token
+end
+
+class << Label
+  def scan( str) 
+    return str if str[-1]==":" # label
+    return nil
   end
 end
 
@@ -97,7 +137,7 @@ class Literal < Token
   def parse( input )
     token = input.line.shift
     return self if @tname == token.downcase
-    raise "#{@tname} literal expected but have #{str}"
+    raise "'#{@tname}' literal expected but have '#{token.downcase}'"
   end
 end
 

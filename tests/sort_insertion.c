@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 int data[30];
 
 void insertSort(int lb, int ub) {

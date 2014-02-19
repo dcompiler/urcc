@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 
 int nbr_5[5];
 int magic = 35;

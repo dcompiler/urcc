@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int getinput(void)
 {
     int a;
