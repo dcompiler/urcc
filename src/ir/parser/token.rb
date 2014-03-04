@@ -52,10 +52,10 @@ class << Token
     return scan( token )
   end
   
-  def _split( strs, del ) 
+  def _split( strs, del )
     elems = [ ]
     strs.each do |e|
-      pos = e.index(del)
+      pos = e.index(del) if e[0]!='"'
       if pos 
         elems << e[0..pos-1] if pos != 0
         elems << del
@@ -67,23 +67,32 @@ class << Token
     return elems
   end
 
+  def _split_right( strs, del )
+    elems = [ ]
+    strs.each do |e|
+      if del.include? e[-1] and e[0]!='"' and e.length > 1
+        elems << e[0..-2]
+        elems << e[-1]
+      else
+        elems << e
+      end
+    end
+    return elems
+  end
+
   def tokenize( str )
     # should find brackets/parentheses first
     # remove the comment if any
     str = str[0...str.index(";")] if str.index(";") != nil
-    str = str.split
-    elems = [ ]
-    str.each do |e|
-      if e[-1..-1] != ','
-        elems << e
-      else
-        elems << e[0..-2]
-        elems << ','
-      end
-    end # comma fixing
+    #p = str.index('"')
+    #str = p ? str[0..p].split.push(str[p..-1]) : str.split
+    elems = str.split
     elems = _split(elems, '(')
     elems = _split(elems, ')')
-    print elems, "\n"
+    elems = _split(elems, '[')
+    elems = _split_right(elems, [','])
+    elems = _split_right(elems, [']'])
+    print 'token ', elems, "\n"
     return elems
   end
 end
@@ -117,12 +126,19 @@ end
 
 class << Label
   def scan( str) 
-    return str if str[-1]==":" # label
+    return str if str[-1]==':' # label
     return nil
   end
 end
 
-class Str < Token
+class Any < Token
+end
+
+class << Any
+  def scan( str ) 
+    return str if str!=nil and !str.empty? 
+    return nil
+  end
 end
 
 # Literal is different from other Tokens.  In the grammar
