@@ -1,5 +1,6 @@
 require 'stringio'
 require_relative '../parser/grammar_rule'
+require_relative '../../misc/log'
 
 class ModuleParser
   def initialize
@@ -111,7 +112,8 @@ class ModuleParser
   end
 end
 
+
+Log.reset
 t = ModuleParser.new()
-f = File.open(ARGV[0]).read
-input = Token::Input.new(StringIO.new(f))
+input = Token::Input.new(File.open(ARGV[0]))
 t.parse(input)
