@@ -138,7 +138,13 @@ class ModuleParser
         if v.is_a? Ast::OpExpr # getelementptr
           @ast_queue << v
         else
-          @ast_queue << GetVarAcc(v)
+          acc = GetVarAcc(v)
+          if acc.is_a? Ast::VarAcc and t != acc.var.var_type
+            raise "mismatched type" if GetPointToType(t) != acc.var.var_type
+            @ast_queue << Ast::OpExpr.new("&", acc)
+          else
+            @ast_queue << acc
+          end
         end
     }
     call_func_pars_rule = AltRule.new(:line, [ 
@@ -175,11 +181,11 @@ class ModuleParser
             s_type = @ast_queue.shift
             s_var = @ast_queue.shift
             s_decl = GetVarDecl(s_var)
+            type = GetPointToType(s_type)
             if s_var.is_a? Ast::OpExpr # getelementptr
-              type = s_type
-              rhs = s_var
+              rhs = s_var.rand1
+              rhs.detach_me
             elsif s_decl.is_a? Decl::Var and s_decl.var_type.is_a? Decl::PrimType
-              type = GetPointToType(s_type)
               if s_type != s_decl.var_type
                 raise "mismatched type" if type != s_decl.var_type
                 rhs = Ast::VarAcc.new(s_decl)
@@ -251,17 +257,18 @@ class ModuleParser
         elsif t_var.is_a? Ast::OpExpr # getelementptr
           raise "incorrect store target" if not t_var.rand1.is_a? Ast::VarAcc
           tgt = t_var.rand1
+          tgt.detach_me
         else
           raise "unhandled store"
         end
         
-        print src.c_dump, tgt.c_dump
+        #print src.c_dump, tgt.c_dump
         @ast_func.add_child(Ast::AssignStat.new(src, tgt))
         @ast_queue.clear
     }
     #label
     @stmt_label = SeqRule.new(:line, [Label] ) { |r|
-        @ast_func.add_child( Ast::LabelStat.new(ToCLabelName(r[0..-2]))) 
+        @ast_func.add_child( Ast::LabelStat.new(ToCLabelName(r))) 
     } 
     #branch
     br_target = SeqRule.new(:line, [ Literal["label"], Text ]) {|*r| @ast_queue << ToCLabelName(r[1])}
@@ -410,7 +417,7 @@ class ModuleParser
   end
 
   def GetASTType(llvmtype, ind) 
-    type_map = {"i1"=>"bool", "i8"=>"char","i64"=>"short", "i32"=>"int", "i64"=>"long long", 
+    type_map = {"i1"=>"char", "i8"=>"char","i64"=>"short", "i32"=>"int", "i64"=>"long long", 
               "void"=>"void", "double"=>"double", "float"=>"float"}
     raise "unsupported type #{llvmtype}" if not type_map.include? llvmtype
     return Decl::PrimType.get_prim_type(type_map[llvmtype], ind)

@@ -13,31 +13,19 @@ class Token
     attr_reader :line
     def initialize( file )
       @file = file
-      @unget_once = false
-      @last_line = nil
       next_line
     end
 
     # a line is an array of words
     def next_line
       begin
-        if @unget_once == true
-          @unget_once = false
-        else
-          @last_line = @file.readline
-        end
-        @line = Token.tokenize( @last_line )
+        @line = Token.tokenize( @file.readline )
         next_line if @line == [ ]  # skip empty lines
       rescue EOFError
         @line = nil
       end
     end # next_line
 
-    def unget_line
-      begin
-        @unget_once = true
-      end
-    end
   end # Token::Input
 end # Token
 
@@ -53,9 +41,9 @@ class << Token
   end
   
   def split_keep_str( line )
-    if line.index("\"")
-      b = line.index("\"") -1 
-      e = line.rindex("\"") # assume only one string
+    if line.index('"')
+      b = line.index('"') -1 
+      e = line.rindex('"') # assume only one string
       elems = line[0..b-1].split
       elems << line[b..e]
       elems += line[e+1..-1].split
@@ -68,7 +56,7 @@ class << Token
     elems = [ ]
     strs.each do |e|
       pos = nil
-      pos = e.index(del) if not e.start_with? 'c\"'
+      pos = e.index(del) if not e.start_with? 'c"'
       if pos and e.length>1 
         ne = []
         ne << e[0..pos-1] if pos != 0
@@ -85,7 +73,7 @@ class << Token
   def _split_right( strs, del )
     elems = [ ]
     strs.each do |e|
-      if del.include? e[-1] and not e.start_with? 'c\"' and e.length > 1
+      if del.include? e[-1] and not e.start_with? 'c"' and e.length > 1
         elems << e[0..-2]
         elems << e[-1]
       else
@@ -98,7 +86,9 @@ class << Token
   def tokenize( str )
     # should find brackets/parentheses first
     # remove the comment if any
+    str = str[2..-1] if str[0] == ';' and str[2..-1].start_with? "<label>:"
     str = str[0...str.index(";")] if str.index(";") != nil
+    str = "" if str[0] == ("!") # ignore metadata
     #p = str.index('"')
     #str = p ? str[0..p].split.push(str[p..-1]) : str.split
     elems = split_keep_str(str)
@@ -108,7 +98,7 @@ class << Token
     elems = _split(elems, '[')
     elems = _split_right(elems, [','])
     elems = _split_right(elems, [']'])
-    print 'token ', elems, "\n"
+    #print 'token ', elems, "\n"
     return elems
   end
 end
@@ -144,7 +134,8 @@ end
 
 class << Label
   def scan( str) 
-    return str if str[-1]==':' # label
+    return str[0..-2] if str[-1] == ':'
+    return str.split(':')[-1] if str.start_with? '<label>:' # label
     return nil
   end
 end

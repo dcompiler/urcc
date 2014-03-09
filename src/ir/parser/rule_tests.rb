@@ -1,5 +1,5 @@
 require 'stringio'
-require_relative 'grammar_rule'
+require './grammar_rule'
 
 module ExampleLit
   def initialize

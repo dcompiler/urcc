@@ -6,7 +6,8 @@ if not Module.const_defined?(:Urcc_path)
   $LOAD_PATH.unshift(Urcc_path+"/src")
 end
 
-LLVM_PATH = "/usr/bin"
+#LLVM_PATH = "/usr/bin"
+LLVM_PATH = "/localdisk/lxiang/llvm-3.3/bin"
 YOUR_CLANG = LLVM_PATH + "/clang"
 YOUR_LLVM_OPT = LLVM_PATH + "/opt"
 
@@ -34,26 +35,32 @@ def main
     return
   end
   
+  if not File.file?(YOUR_CLANG) or not File.file?(YOUR_LLVM_OPT)
+    puts "Invalid clang/llvm path."
+    return
+  end
+
   # we need a way to determine the location of our own gcc
-  #gccversion = `#{Yourgcc} --version`
-  #if (gccversion =~ /\(GCC\) 4.2/) == nil
-  #  puts "Please use GCC 4.2.2"
-  #  puts "Only GCC 4.2.2 has been tested."
-  #  return
-  #end 
+  clangversion = `#{YOUR_CLANG} --version`.split
+  if not ['3.3', '3.4'].include? clangversion[2]
+    puts "Please use clang 3.3+"
+    return
+  end 
 
   bitcode_file = "#{filename}.ll"
-  execute "#{YOUR_CLANG} -O0 -emit-llvm -c #{filename} -o - | #{YOUR_LLVM_OPT} -O0 -reg2mem -S -o #{bitcode_file}"
+  execute "#{YOUR_CLANG} -O0 -emit-llvm -c #{filename} -o - | #{YOUR_LLVM_OPT} -reg2mem -S -o #{bitcode_file}"
 
   prog = URCCFE.new(bitcode_file).astroot
 
-  orig_file = filename[0..-3]+"_urcc.c"
-  file = File.new(orig_file, "w")
-  file << prog.c_dump  
+  unopt_file = filename[0..-3]+"_urcc.c"
+  file = File.new(unopt_file, "w")
+  file << URCCFE.dump_prog(prog)
   file.close
 
-  binary_file = orig_file[0..-3] + ".bin"
-  execute "#{YOUR_CLANG} -O0 #{orig_file} -o #{binary_file}"
+  #execute "#{YOUR_CLANG} -O0 -Wno-format-security -g #{filename} -o #{filename[0..-3]}"
+
+  binary_file = unopt_file[0..-3] + ".bin"
+  execute "#{YOUR_CLANG} -O0 -Wno-format-security -Wno-implicit-function-declaration -g #{unopt_file} -o #{binary_file}"
 
   ######################################################
   # Optimizations are here for "prog"
@@ -71,11 +78,11 @@ def main
 
   opt_file = filename[0..-3]+"_urcc_opt.c"
   file = File.new(opt_file, "w")
-  file << prog.c_dump 
+  file << URCCFE.dump_prog(prog)
   file.close
   
-  opt_binary_file = opt_file[0..-3] + ".bin"
-  execute "#{YOUR_CLANG} -O0 #{opt_file} -o #{opt_binary_file}"
+  opt_binary_file = opt_file[0..-3] + ".bin" 
+  execute "#{YOUR_CLANG} -O0 -Wno-format-security -Wno-implicit-function-declaration -g #{opt_file} -o #{opt_binary_file}"
 
   # enable the following lines if you do not want to keep 
   # intermediate files
