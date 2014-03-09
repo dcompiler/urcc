@@ -6,12 +6,13 @@ if not Module.const_defined?(:Urcc_path)
   $LOAD_PATH.unshift(Urcc_path+"/src")
 end
 
-LLVM_PATH = "/usr/bin"
-YOUR_CLANG = LLVM_PATH + "/clang"
-YOUR_LLVM_OPT = LLVM_PATH + "/opt"
+# Need GCC 4.2.x
+Gcc42_path = "/usr/bin"
+Yourgcc = Gcc42_path+"/gcc"
 
-# The main driver for our urcc
-require_relative "../src/ir/urccfe.rb"
+# The main driver for our rcc
+require "gimple/gimp2raw.rb"
+require "gimple/raw2ast.rb"
 
 module Execute
   def execute( cmd )
@@ -35,25 +36,20 @@ def main
   end
   
   # we need a way to determine the location of our own gcc
-  #gccversion = `#{Yourgcc} --version`
-  #if (gccversion =~ /\(GCC\) 4.2/) == nil
-  #  puts "Please use GCC 4.2.2"
-  #  puts "Only GCC 4.2.2 has been tested."
-  #  return
-  #end 
-
-  bitcode_file = "#{filename}.ll"
-  execute "#{YOUR_CLANG} -O0 -emit-llvm -c #{filename} -o - | #{YOUR_LLVM_OPT} -O0 -reg2mem -S -o #{bitcode_file}"
-
-  prog = URCCFE.new(bitcode_file).astroot
-
-  orig_file = filename[0..-3]+"_urcc.c"
-  file = File.new(orig_file, "w")
-  file << prog.c_dump  
-  file.close
-
-  binary_file = orig_file[0..-3] + ".bin"
-  execute "#{YOUR_CLANG} -O0 #{orig_file} -o #{binary_file}"
+  gccversion = `#{Yourgcc} --version`
+  if (gccversion =~ /\(GCC\) 4.2/) == nil
+    puts "Please use GCC 4.2.2"
+    puts "Only GCC 4.2.2 has been tested."
+    return
+  end
+  
+  execute "#{Yourgcc} -O0 -fdump-tree-gimple-raw -c #{filename}"
+  
+  filename = filename.split("/")[-1]
+  execute "rm #{filename[0..-3]+".o"}"
+  gimple_file = `ls #{filename}.*.gimple`.chop # chop "\n"
+  prog = URCCFE.new(gimple_file).astroot
+  execute "rm #{gimple_file}"
 
   ######################################################
   # Optimizations are here for "prog"
@@ -68,17 +64,18 @@ def main
   end
 
   ######################################################
-
-  opt_file = filename[0..-3]+"_urcc_opt.c"
-  file = File.new(opt_file, "w")
-  file << prog.c_dump 
-  file.close
   
-  opt_binary_file = opt_file[0..-3] + ".bin"
-  execute "#{YOUR_CLANG} -O0 #{opt_file} -o #{opt_binary_file}"
+  c_file = filename[0..-3]+"_urcc.c" 
+  file = File.new(c_file, "w")
+  file << prog.c_dump  
+  file.close
+
+  binary_file = filename[0..-3]
+  execute "#{Yourgcc} -O0 #{c_file} -o #{binary_file}"
 
   # enable the following lines if you do not want to keep 
   # intermediate files
+  #`rm #{gimple_file}`
   #`rm #{c_file}`
 end
 

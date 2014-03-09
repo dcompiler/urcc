@@ -458,8 +458,3 @@ class ModuleParser
 end
 
 
-Log.reset
-t = ModuleParser.new()
-input = Token::Input.new(File.open(ARGV[0]))
-prog = t.parse(input)
-print prog.c_dump()
