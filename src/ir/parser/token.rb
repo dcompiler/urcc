@@ -52,14 +52,29 @@ class << Token
     return scan( token )
   end
   
+  def split_keep_str( line )
+    if line.index("\"")
+      b = line.index("\"") -1 
+      e = line.rindex("\"") # assume only one string
+      elems = line[0..b-1].split
+      elems << line[b..e]
+      elems += line[e+1..-1].split
+      return elems
+    end
+    return line.split
+  end
+
   def _split( strs, del )
     elems = [ ]
     strs.each do |e|
-      pos = e.index(del) if e[0]!='"'
-      if pos 
-        elems << e[0..pos-1] if pos != 0
-        elems << del
-        elems << e[pos+1..-1] if pos != e.length-1
+      pos = nil
+      pos = e.index(del) if not e.start_with? 'c\"'
+      if pos and e.length>1 
+        ne = []
+        ne << e[0..pos-1] if pos != 0
+        ne << del
+        ne << e[pos+1..-1] if pos != e.length-1
+        elems += _split(ne, del)
       else
         elems << e
       end
@@ -70,7 +85,7 @@ class << Token
   def _split_right( strs, del )
     elems = [ ]
     strs.each do |e|
-      if del.include? e[-1] and e[0]!='"' and e.length > 1
+      if del.include? e[-1] and not e.start_with? 'c\"' and e.length > 1
         elems << e[0..-2]
         elems << e[-1]
       else
@@ -86,9 +101,10 @@ class << Token
     str = str[0...str.index(";")] if str.index(";") != nil
     #p = str.index('"')
     #str = p ? str[0..p].split.push(str[p..-1]) : str.split
-    elems = str.split
+    elems = split_keep_str(str)
     elems = _split(elems, '(')
     elems = _split(elems, ')')
+    elems = _split(elems, '*')
     elems = _split(elems, '[')
     elems = _split_right(elems, [','])
     elems = _split_right(elems, [']'])
@@ -115,8 +131,10 @@ end
 
 class << Number
   def scan( str )
-    return nil unless str.match /^[-+]?[0-9]*[.]?[0-9]*$/
-    return str.to_f if str.match /^[-+]?[0-9]*[.][0-9]*$/
+    return 1 if str == "true"
+    return 0 if str == "false"
+    return nil unless str.match /^[-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?$/
+    return str.to_f if str.match /^[-+]?[0-9]*[.][0-9]+([eE][-+]?[0-9]+)?$/
     return str.to_i
   end
 end
@@ -128,6 +146,18 @@ class << Label
   def scan( str) 
     return str if str[-1]==':' # label
     return nil
+  end
+end
+
+class Str < Token
+end
+
+class << Str
+  def scan ( str )
+    return nil if not str.start_with? "c\""
+    str = str.gsub('\00', '')
+    str = str.gsub('\0A', '\n')
+    return str[2..-2]
   end
 end
 

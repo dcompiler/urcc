@@ -7,8 +7,8 @@
 # Author:: Chen Ding
 # Created:: Feb. 8, 2009
 
-require "misc/utils.rb"
-require "ast/ast_tree.rb"
+require_relative "../misc/utils.rb"
+require_relative "./ast_tree.rb"
 
 module Ast
 
@@ -68,6 +68,21 @@ module Ast
       return result if dim == 0
       children.each { |chd| result += "[#{chd.c_dump}]" }
       return result
+    end
+  end
+
+
+  class DerefAcc < VarAcc
+    attr_reader :level
+    def initialize(var, level)
+      super(var)
+      RUtils::expect(level, ::Numeric, "var access")
+      @level = level
+    end
+
+    def c_dump
+      result = '*' * level
+      return result += super
     end
   end
 

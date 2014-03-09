@@ -56,7 +56,8 @@ class SeqRule < Rule
     @sequence.each do |elem|
       # puts "line: #{input.line * ' '}" if @input_type == :file and input.line != nil
       r = elem.parse( input )
-      result << r if not r.is_a? Literal
+      #result << r if not r.is_a? Literal
+      result << r
       input.next_line if @input_type == :file and not elem.is_a? RepRule
     end # sequence
 
@@ -65,36 +66,15 @@ class SeqRule < Rule
   end # parse
 end # SeqRule
 
-
-class SkipRule < Rule
-  def initialize( input_type, symbol_after_end = [] )
-    raise "SkipRule works for line only" if input_type == :file
-    super( input_type )
-    @symbol_after_end = symbol_after_end.is_a?(Array)? symbol_after_end : [ symbol_after_end ]
-  end
-
-  def lookahead( token )
-    print "skip_look", token
-    return self 
-  end
-
-  def parse( input )
-    while input.line!=nil do
-      print "skip ", input.line.shift
-      return [] if @symbol_after_end.include?( input.line[0] )
-    end
-    return []
-  end # parse
-end # SkipRule
-
-
 class RepRule < Rule # repetition rule: 0, 1, or more times
   # if [], repetition ends at the end of line or end of file
-  def initialize( input_type, unit, symbol_after_end = [] )
+  def initialize( input_type, unit, symbol_after_end = [], terminate_cond = nil )
     super( input_type )
     raise "need a SeqRule or AltRule" unless unit.class == SeqRule or unit.class == AltRule
+    raise "terminate condition should be a lamba" if terminate_cond and not terminate_cond.lambda?
     @kernel = unit
     @symbol_after_end = symbol_after_end.is_a?(Array)? symbol_after_end : [ symbol_after_end ]
+    @tcond = terminate_cond
   end
 
   def lookahead( token )
@@ -106,29 +86,7 @@ class RepRule < Rule # repetition rule: 0, 1, or more times
   end
 
   def parse( input )
-#    result = []
-#    if @input_type == :line
-#        while input.line and not (input.line.empty? or @symbol_after_end.include?( input.line[0] ) or @symbol_after_end.include? (input.line[0][0])) do
-#            p = @kernel.parse( input )
-#            result.unshift( p ) unless p.is_a? Literal
-#        end
-#    else
-#        while input.line do
-#            if @symbol_after_end.include?( input.line[0] ) or (not input.line[0].empty? and @symbol_after_end.include? (input.line[0][0]))
-#                #print 'unget', input.line[0], input.line[0][0]
-#                print "end\n"
-#                #input.unget_line
-#                break
-#            end
-#
-#            p = @kernel.parse( input )
-#            result.unshift( p ) unless p.is_a? Literal
-#            input.next_line if input.line.empty?
-#        end
-#    end
-#    return result
-
-    if input.line == nil or input.line.empty? or @symbol_after_end.include?( input.line[0] ) or @symbol_after_end.include? (input.line[0][0])
+    if input.line == nil or input.line.empty? or @symbol_after_end.include?( input.line[0] ) or @symbol_after_end.include? (input.line[0][0]) or (@tcond and @tcond.call(input.line[0]))
       return [ ] 
     end
     head = @kernel.parse( input )

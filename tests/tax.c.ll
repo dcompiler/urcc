@@ -1,6 +1,6 @@
-; ModuleID = 'tax.c.bc'
-target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:32:32-n8:16:32-S128"
-target triple = "i386-pc-linux-gnu"
+; ModuleID = '<stdin>'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
 
 @.str = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 @.str1 = private unnamed_addr constant [31 x i8] c"I need a non-negative number: \00", align 1
@@ -30,9 +30,11 @@ target triple = "i386-pc-linux-gnu"
 @.str25 = private unnamed_addr constant [38 x i8] c"Bummer. You owe the IRS a check for $\00", align 1
 @.str26 = private unnamed_addr constant [29 x i8] c"Thank you for using ez-tax.\0A\00", align 1
 
-define i32 @getinput() nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @getinput() #0 {
 entry:
   %inp = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 -1, i32* %inp, align 4
   br label %while.cond
 
@@ -45,13 +47,16 @@ while.body:                                       ; preds = %while.cond
   %call = call i32 (i8*, ...)* @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8]* @.str, i32 0, i32 0), i32* %inp)
   %1 = load i32* %inp, align 4
   %cmp1 = icmp sgt i32 0, %1
-  br i1 %cmp1, label %if.then, label %if.end
+  br i1 %cmp1, label %if.then, label %while.body.if.end_crit_edge
+
+while.body.if.end_crit_edge:                      ; preds = %while.body
+  br label %if.end
 
 if.then:                                          ; preds = %while.body
   %call2 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([31 x i8]* @.str1, i32 0, i32 0))
   br label %if.end
 
-if.end:                                           ; preds = %if.then, %while.body
+if.end:                                           ; preds = %while.body.if.end_crit_edge, %if.then
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
@@ -59,11 +64,12 @@ while.end:                                        ; preds = %while.cond
   ret i32 %2
 }
 
-declare i32 @__isoc99_scanf(i8*, ...)
+declare i32 @__isoc99_scanf(i8*, ...) #1
 
-declare i32 @printf(i8*, ...)
+declare i32 @printf(i8*, ...) #1
 
-define i32 @main() nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
   %line1 = alloca i32, align 4
@@ -87,6 +93,7 @@ entry:
   %g = alloca i32, align 4
   %eic = alloca i32, align 4
   %spousedependant = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 0, i32* %retval
   %call = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([63 x i8]* @.str2, i32 0, i32 0))
   %call1 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([65 x i8]* @.str3, i32 0, i32 0))
@@ -117,7 +124,10 @@ entry:
   store i32 %call16, i32* %dependant, align 4
   %4 = load i32* %dependant, align 4
   %cmp = icmp ne i32 0, %4
-  br i1 %cmp, label %if.then, label %if.end39
+  br i1 %cmp, label %if.then, label %entry.if.end39_crit_edge
+
+entry.if.end39_crit_edge:                         ; preds = %entry
+  br label %if.end39
 
 if.then:                                          ; preds = %entry
   store i32 700, i32* %b, align 4
@@ -127,7 +137,10 @@ if.then:                                          ; preds = %entry
   %7 = load i32* %line1, align 4
   %add17 = add nsw i32 %7, 250
   %cmp18 = icmp slt i32 %6, %add17
-  br i1 %cmp18, label %if.then19, label %if.end
+  br i1 %cmp18, label %if.then19, label %if.then.if.end_crit_edge
+
+if.then.if.end_crit_edge:                         ; preds = %if.then
+  br label %if.end
 
 if.then19:                                        ; preds = %if.then
   %8 = load i32* %line1, align 4
@@ -135,7 +148,7 @@ if.then19:                                        ; preds = %if.then
   store i32 %add20, i32* %c, align 4
   br label %if.end
 
-if.end:                                           ; preds = %if.then19, %if.then
+if.end:                                           ; preds = %if.then.if.end_crit_edge, %if.then19
   %call21 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([54 x i8]* @.str14, i32 0, i32 0))
   %call22 = call i32 @getinput()
   store i32 %call22, i32* %single, align 4
@@ -157,18 +170,24 @@ if.end25:                                         ; preds = %if.else, %if.then24
   %11 = load i32* %e, align 4
   %12 = load i32* %d, align 4
   %cmp26 = icmp sgt i32 %11, %12
-  br i1 %cmp26, label %if.then27, label %if.end28
+  br i1 %cmp26, label %if.then27, label %if.end25.if.end28_crit_edge
+
+if.end25.if.end28_crit_edge:                      ; preds = %if.end25
+  br label %if.end28
 
 if.then27:                                        ; preds = %if.end25
   %13 = load i32* %d, align 4
   store i32 %13, i32* %e, align 4
   br label %if.end28
 
-if.end28:                                         ; preds = %if.then27, %if.end25
+if.end28:                                         ; preds = %if.end25.if.end28_crit_edge, %if.then27
   store i32 0, i32* %f, align 4
   %14 = load i32* %single, align 4
   %cmp29 = icmp eq i32 %14, 0
-  br i1 %cmp29, label %if.then30, label %if.end37
+  br i1 %cmp29, label %if.then30, label %if.end28.if.end37_crit_edge
+
+if.end28.if.end37_crit_edge:                      ; preds = %if.end28
+  br label %if.end37
 
 if.then30:                                        ; preds = %if.end28
   %call31 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([57 x i8]* @.str15, i32 0, i32 0))
@@ -177,16 +196,19 @@ if.then30:                                        ; preds = %if.end28
   store i32 %call33, i32* %spousedependant, align 4
   %15 = load i32* %spousedependant, align 4
   %cmp34 = icmp eq i32 0, %15
-  br i1 %cmp34, label %if.then35, label %if.end36
+  br i1 %cmp34, label %if.then35, label %if.then30.if.end36_crit_edge
+
+if.then30.if.end36_crit_edge:                     ; preds = %if.then30
+  br label %if.end36
 
 if.then35:                                        ; preds = %if.then30
   store i32 2800, i32* %f, align 4
   br label %if.end36
 
-if.end36:                                         ; preds = %if.then35, %if.then30
+if.end36:                                         ; preds = %if.then30.if.end36_crit_edge, %if.then35
   br label %if.end37
 
-if.end37:                                         ; preds = %if.end36, %if.end28
+if.end37:                                         ; preds = %if.end28.if.end37_crit_edge, %if.end36
   %16 = load i32* %e, align 4
   %17 = load i32* %f, align 4
   %add38 = add nsw i32 %16, %17
@@ -195,10 +217,13 @@ if.end37:                                         ; preds = %if.end36, %if.end28
   store i32 %18, i32* %line5, align 4
   br label %if.end39
 
-if.end39:                                         ; preds = %if.end37, %entry
+if.end39:                                         ; preds = %entry.if.end39_crit_edge, %if.end37
   %19 = load i32* %dependant, align 4
   %cmp40 = icmp eq i32 0, %19
-  br i1 %cmp40, label %if.then41, label %if.end50
+  br i1 %cmp40, label %if.then41, label %if.end39.if.end50_crit_edge
+
+if.end39.if.end50_crit_edge:                      ; preds = %if.end39
+  br label %if.end50
 
 if.then41:                                        ; preds = %if.end39
   %call42 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([54 x i8]* @.str14, i32 0, i32 0))
@@ -206,38 +231,47 @@ if.then41:                                        ; preds = %if.end39
   store i32 %call43, i32* %single, align 4
   %20 = load i32* %single, align 4
   %cmp44 = icmp ne i32 0, %20
-  br i1 %cmp44, label %if.then45, label %if.end46
+  br i1 %cmp44, label %if.then45, label %if.then41.if.end46_crit_edge
+
+if.then41.if.end46_crit_edge:                     ; preds = %if.then41
+  br label %if.end46
 
 if.then45:                                        ; preds = %if.then41
   store i32 12950, i32* %line5, align 4
   br label %if.end46
 
-if.end46:                                         ; preds = %if.then45, %if.then41
+if.end46:                                         ; preds = %if.then41.if.end46_crit_edge, %if.then45
   %21 = load i32* %single, align 4
   %cmp47 = icmp eq i32 0, %21
-  br i1 %cmp47, label %if.then48, label %if.end49
+  br i1 %cmp47, label %if.then48, label %if.end46.if.end49_crit_edge
+
+if.end46.if.end49_crit_edge:                      ; preds = %if.end46
+  br label %if.end49
 
 if.then48:                                        ; preds = %if.end46
   store i32 7200, i32* %line5, align 4
   br label %if.end49
 
-if.end49:                                         ; preds = %if.then48, %if.end46
+if.end49:                                         ; preds = %if.end46.if.end49_crit_edge, %if.then48
   br label %if.end50
 
-if.end50:                                         ; preds = %if.end49, %if.end39
+if.end50:                                         ; preds = %if.end39.if.end50_crit_edge, %if.end49
   %22 = load i32* %line4, align 4
   %23 = load i32* %line5, align 4
   %sub = sub nsw i32 %22, %23
   store i32 %sub, i32* %line6, align 4
   %24 = load i32* %line6, align 4
   %cmp51 = icmp slt i32 %24, 0
-  br i1 %cmp51, label %if.then52, label %if.end53
+  br i1 %cmp51, label %if.then52, label %if.end50.if.end53_crit_edge
+
+if.end50.if.end53_crit_edge:                      ; preds = %if.end50
+  br label %if.end53
 
 if.then52:                                        ; preds = %if.end50
   store i32 0, i32* %line6, align 4
   br label %if.end53
 
-if.end53:                                         ; preds = %if.then52, %if.end50
+if.end53:                                         ; preds = %if.end50.if.end53_crit_edge, %if.then52
   %call54 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([25 x i8]* @.str17, i32 0, i32 0))
   %25 = load i32* %line6, align 4
   %call55 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str11, i32 0, i32 0), i32 %25)
@@ -251,14 +285,17 @@ if.end53:                                         ; preds = %if.then52, %if.end5
   store i32 0, i32* %line8, align 4
   %26 = load i32* %eic, align 4
   %cmp61 = icmp ne i32 0, %26
-  br i1 %cmp61, label %if.then62, label %if.end64
+  br i1 %cmp61, label %if.then62, label %if.end53.if.end64_crit_edge
+
+if.end53.if.end64_crit_edge:                      ; preds = %if.end53
+  br label %if.end64
 
 if.then62:                                        ; preds = %if.end53
   %call63 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([55 x i8]* @.str21, i32 0, i32 0))
   store i32 1000, i32* %line8, align 4
   br label %if.end64
 
-if.end64:                                         ; preds = %if.then62, %if.end53
+if.end64:                                         ; preds = %if.end53.if.end64_crit_edge, %if.then62
   %call65 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([36 x i8]* @.str22, i32 0, i32 0))
   %27 = load i32* %line8, align 4
   %28 = load i32* %line7, align 4
@@ -295,7 +332,10 @@ if.end76:                                         ; preds = %if.else75, %if.then
   %36 = load i32* %line10, align 4
   %sub78 = sub nsw i32 %add77, %36
   %cmp79 = icmp sgt i32 %sub78, 0
-  br i1 %cmp79, label %if.then80, label %if.end85
+  br i1 %cmp79, label %if.then80, label %if.end76.if.end85_crit_edge
+
+if.end76.if.end85_crit_edge:                      ; preds = %if.end76
+  br label %if.end85
 
 if.then80:                                        ; preds = %if.end76
   %call81 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([43 x i8]* @.str24, i32 0, i32 0))
@@ -307,14 +347,17 @@ if.then80:                                        ; preds = %if.end76
   %call84 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str11, i32 0, i32 0), i32 %sub83)
   br label %if.end85
 
-if.end85:                                         ; preds = %if.then80, %if.end76
+if.end85:                                         ; preds = %if.end76.if.end85_crit_edge, %if.then80
   %40 = load i32* %line10, align 4
   %41 = load i32* %line8, align 4
   %42 = load i32* %line7, align 4
   %add86 = add nsw i32 %41, %42
   %sub87 = sub nsw i32 %40, %add86
   %cmp88 = icmp sge i32 %sub87, 0
-  br i1 %cmp88, label %if.then89, label %if.end94
+  br i1 %cmp88, label %if.then89, label %if.end85.if.end94_crit_edge
+
+if.end85.if.end94_crit_edge:                      ; preds = %if.end85
+  br label %if.end94
 
 if.then89:                                        ; preds = %if.end85
   %call90 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([38 x i8]* @.str25, i32 0, i32 0))
@@ -326,7 +369,7 @@ if.then89:                                        ; preds = %if.end85
   %call93 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str11, i32 0, i32 0), i32 %sub92)
   br label %if.end94
 
-if.end94:                                         ; preds = %if.then89, %if.end85
+if.end94:                                         ; preds = %if.end85.if.end94_crit_edge, %if.then89
   %46 = load i32* %line10, align 4
   %47 = load i32* %line8, align 4
   %48 = load i32* %line7, align 4
@@ -378,3 +421,6 @@ if.end100:                                        ; preds = %if.else99, %if.then
   %63 = load i32* %retval
   ret i32 %63
 }
+
+attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }

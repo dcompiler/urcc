@@ -12,7 +12,7 @@
 # * an array of children nodes and a pointer to the parent
 # * methods for inserting and deleting nodes
 
-require "ast/ast_scope.rb"
+require_relative "./ast_scope.rb"
 #require "ast/ast_stat.rb"
 #require "ast/ast_expr.rb"
 

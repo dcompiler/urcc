@@ -1,6 +1,6 @@
-; ModuleID = 'binrep.c.bc'
-target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:32:32-n8:16:32-S128"
-target triple = "i386-pc-linux-gnu"
+; ModuleID = '<stdin>'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
 
 @.str = private unnamed_addr constant [2 x i8] c"0\00", align 1
 @.str1 = private unnamed_addr constant [2 x i8] c"1\00", align 1
@@ -12,10 +12,12 @@ target triple = "i386-pc-linux-gnu"
 @.str7 = private unnamed_addr constant [5 x i8] c"is: \00", align 1
 @.str8 = private unnamed_addr constant [3 x i8] c"\0A\0A\00", align 1
 
-define void @recursedigit(i32 %n) nounwind {
+; Function Attrs: nounwind uwtable
+define void @recursedigit(i32 %n) #0 {
 entry:
   %n.addr = alloca i32, align 4
   %on = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %n, i32* %n.addr, align 4
   %0 = load i32* %n.addr, align 4
   %cmp = icmp eq i32 0, %0
@@ -32,43 +34,54 @@ if.end:                                           ; preds = %entry
   %mul = mul nsw i32 %div, 2
   %sub = sub nsw i32 %1, %mul
   %cmp1 = icmp ne i32 0, %sub
-  br i1 %cmp1, label %if.then2, label %if.end3
+  br i1 %cmp1, label %if.then2, label %if.end.if.end3_crit_edge
+
+if.end.if.end3_crit_edge:                         ; preds = %if.end
+  br label %if.end3
 
 if.then2:                                         ; preds = %if.end
   store i32 1, i32* %on, align 4
   br label %if.end3
 
-if.end3:                                          ; preds = %if.then2, %if.end
+if.end3:                                          ; preds = %if.end.if.end3_crit_edge, %if.then2
   %3 = load i32* %n.addr, align 4
   %div4 = sdiv i32 %3, 2
   call void @recursedigit(i32 %div4)
   %4 = load i32* %on, align 4
   %cmp5 = icmp eq i32 0, %4
-  br i1 %cmp5, label %if.then6, label %if.end7
+  br i1 %cmp5, label %if.then6, label %if.end3.if.end7_crit_edge
+
+if.end3.if.end7_crit_edge:                        ; preds = %if.end3
+  br label %if.end7
 
 if.then6:                                         ; preds = %if.end3
   %call = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([2 x i8]* @.str, i32 0, i32 0))
   br label %if.end7
 
-if.end7:                                          ; preds = %if.then6, %if.end3
+if.end7:                                          ; preds = %if.end3.if.end7_crit_edge, %if.then6
   %5 = load i32* %on, align 4
   %cmp8 = icmp eq i32 1, %5
-  br i1 %cmp8, label %if.then9, label %if.end11
+  br i1 %cmp8, label %if.then9, label %if.end7.if.end11_crit_edge
+
+if.end7.if.end11_crit_edge:                       ; preds = %if.end7
+  br label %if.end11
 
 if.then9:                                         ; preds = %if.end7
   %call10 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([2 x i8]* @.str1, i32 0, i32 0))
   br label %if.end11
 
-if.end11:                                         ; preds = %if.then9, %if.end7, %if.then
+if.end11:                                         ; preds = %if.end7.if.end11_crit_edge, %if.then9, %if.then
   ret void
 }
 
-declare i32 @printf(i8*, ...)
+declare i32 @printf(i8*, ...) #1
 
-define i32 @main() nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
   %a = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 0, i32* %retval
   store i32 0, i32* %a, align 4
   br label %while.cond
@@ -83,13 +96,16 @@ while.body:                                       ; preds = %while.cond
   %call1 = call i32 (i8*, ...)* @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8]* @.str3, i32 0, i32 0), i32* %a)
   %1 = load i32* %a, align 4
   %cmp2 = icmp sge i32 0, %1
-  br i1 %cmp2, label %if.then, label %if.end
+  br i1 %cmp2, label %if.then, label %while.body.if.end_crit_edge
+
+while.body.if.end_crit_edge:                      ; preds = %while.body
+  br label %if.end
 
 if.then:                                          ; preds = %while.body
   %call3 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([28 x i8]* @.str4, i32 0, i32 0))
   br label %if.end
 
-if.end:                                           ; preds = %if.then, %while.body
+if.end:                                           ; preds = %while.body.if.end_crit_edge, %if.then
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
@@ -104,4 +120,7 @@ while.end:                                        ; preds = %while.cond
   ret i32 %4
 }
 
-declare i32 @__isoc99_scanf(i8*, ...)
+declare i32 @__isoc99_scanf(i8*, ...) #1
+
+attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }

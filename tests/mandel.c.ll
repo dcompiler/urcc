@@ -1,14 +1,16 @@
-; ModuleID = 'mandel.c.bc'
-target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:32:32-n8:16:32-S128"
-target triple = "i386-pc-linux-gnu"
+; ModuleID = '<stdin>'
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
 
 @.str = private unnamed_addr constant [2 x i8] c"X\00", align 1
 @.str1 = private unnamed_addr constant [2 x i8] c" \00", align 1
 @.str2 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
-define i32 @square(i32 %x) nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @square(i32 %x) #0 {
 entry:
   %x.addr = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %x, i32* %x.addr, align 4
   %0 = load i32* %x.addr, align 4
   %1 = load i32* %x.addr, align 4
@@ -18,10 +20,12 @@ entry:
   ret i32 %div
 }
 
-define i32 @complex_abs_squared(i32 %real, i32 %imag) nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @complex_abs_squared(i32 %real, i32 %imag) #0 {
 entry:
   %real.addr = alloca i32, align 4
   %imag.addr = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %real, i32* %real.addr, align 4
   store i32 %imag, i32* %imag.addr, align 4
   %0 = load i32* %real.addr, align 4
@@ -32,23 +36,31 @@ entry:
   ret i32 %add
 }
 
-define i32 @check_for_bail(i32 %real, i32 %imag) nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @check_for_bail(i32 %real, i32 %imag) #0 {
 entry:
   %retval = alloca i32, align 4
   %real.addr = alloca i32, align 4
   %imag.addr = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %real, i32* %real.addr, align 4
   store i32 %imag, i32* %imag.addr, align 4
   %0 = load i32* %real.addr, align 4
   %cmp = icmp sgt i32 %0, 4000
-  br i1 %cmp, label %if.then, label %lor.lhs.false
+  br i1 %cmp, label %entry.if.then_crit_edge, label %lor.lhs.false
+
+entry.if.then_crit_edge:                          ; preds = %entry
+  br label %if.then
 
 lor.lhs.false:                                    ; preds = %entry
   %1 = load i32* %imag.addr, align 4
   %cmp1 = icmp sgt i32 %1, 4000
-  br i1 %cmp1, label %if.then, label %if.end
+  br i1 %cmp1, label %lor.lhs.false.if.then_crit_edge, label %if.end
 
-if.then:                                          ; preds = %lor.lhs.false, %entry
+lor.lhs.false.if.then_crit_edge:                  ; preds = %lor.lhs.false
+  br label %if.then
+
+if.then:                                          ; preds = %lor.lhs.false.if.then_crit_edge, %entry.if.then_crit_edge
   store i32 0, i32* %retval
   br label %return
 
@@ -72,10 +84,12 @@ return:                                           ; preds = %if.end4, %if.then3,
   ret i32 %4
 }
 
-define i32 @absval(i32 %x) nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @absval(i32 %x) #0 {
 entry:
   %retval = alloca i32, align 4
   %x.addr = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %x, i32* %x.addr, align 4
   %0 = load i32* %x.addr, align 4
   %cmp = icmp slt i32 %0, 0
@@ -97,7 +111,8 @@ return:                                           ; preds = %if.end, %if.then
   ret i32 %3
 }
 
-define i32 @checkpixel(i32 %x, i32 %y) nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @checkpixel(i32 %x, i32 %y) #0 {
 entry:
   %retval = alloca i32, align 4
   %x.addr = alloca i32, align 4
@@ -107,6 +122,7 @@ entry:
   %temp = alloca i32, align 4
   %iter = alloca i32, align 4
   %bail = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 %x, i32* %x.addr, align 4
   store i32 %y, i32* %y.addr, align 4
   store i32 0, i32* %real, align 4
@@ -167,12 +183,14 @@ return:                                           ; preds = %while.end, %if.then
   ret i32 %11
 }
 
-define i32 @main() nounwind {
+; Function Attrs: nounwind uwtable
+define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
   %x = alloca i32, align 4
   %y = alloca i32, align 4
   %on = alloca i32, align 4
+  %"reg2mem alloca point" = bitcast i32 0 to i32
   store i32 0, i32* %retval
   store i32 950, i32* %y, align 4
   br label %while.cond
@@ -198,22 +216,28 @@ while.body3:                                      ; preds = %while.cond1
   store i32 %call, i32* %on, align 4
   %4 = load i32* %on, align 4
   %cmp4 = icmp eq i32 1, %4
-  br i1 %cmp4, label %if.then, label %if.end
+  br i1 %cmp4, label %if.then, label %while.body3.if.end_crit_edge
+
+while.body3.if.end_crit_edge:                     ; preds = %while.body3
+  br label %if.end
 
 if.then:                                          ; preds = %while.body3
   %call5 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([2 x i8]* @.str, i32 0, i32 0))
   br label %if.end
 
-if.end:                                           ; preds = %if.then, %while.body3
+if.end:                                           ; preds = %while.body3.if.end_crit_edge, %if.then
   %5 = load i32* %on, align 4
   %cmp6 = icmp eq i32 0, %5
-  br i1 %cmp6, label %if.then7, label %if.end9
+  br i1 %cmp6, label %if.then7, label %if.end.if.end9_crit_edge
+
+if.end.if.end9_crit_edge:                         ; preds = %if.end
+  br label %if.end9
 
 if.then7:                                         ; preds = %if.end
   %call8 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([2 x i8]* @.str1, i32 0, i32 0))
   br label %if.end9
 
-if.end9:                                          ; preds = %if.then7, %if.end
+if.end9:                                          ; preds = %if.end.if.end9_crit_edge, %if.then7
   %6 = load i32* %x, align 4
   %add = add nsw i32 %6, 40
   store i32 %add, i32* %x, align 4
@@ -231,4 +255,7 @@ while.end11:                                      ; preds = %while.cond
   ret i32 %8
 }
 
-declare i32 @printf(i8*, ...)
+declare i32 @printf(i8*, ...) #1
+
+attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }

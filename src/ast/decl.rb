@@ -40,7 +40,8 @@ class Type
 end
 
 class PrimType < Type
-
+  attr_reader :type_name
+  
   def PrimType.prim_pool
     return @@prim_pool
   end
@@ -95,7 +96,7 @@ class FuncType < Type
   end
 
   def add_param(param)
-    raise "Parameter (#{param.decl_c_dump}) already exists\n" if @param_list.index(param)!=nil
+    raise "Parameter (#{param.decl_c_dump(0)}) already exists\n" if @param_list.index(param)!=nil
     @param_list.push(param)
   end
 

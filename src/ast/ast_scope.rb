@@ -9,8 +9,8 @@
 # Author:: Chen Ding
 # Created:: Feb. 7, 2009
 
-require "ast/decl.rb"
-require "ast/ast_tree.rb"
+require_relative "./decl.rb"
+require_relative "./ast_tree.rb"
 
 module Ast
 
@@ -21,6 +21,7 @@ module Ast
     def initialize(s_nm) 
       super(s_nm)
       @symbols = Hash.new
+      @inits = Hash.new
     end
 
     # sym may be one Decl::Var or an array or set of them
@@ -44,12 +45,19 @@ module Ast
       return @symbols[name]
     end
 
+    def set_initializer(name, var)
+      raise "Variable '#{name}' not found" if not @symbols.include? name
+      @inits[name] = var
+    end
+
     # clear all symbols when name is nil or not provided
     def remove_sym(name=nil)
       if name==nil
         @symbols = Hash.new
+        @inits = Hash.new
       else
         @symbols[name] = nil
+        @inits[name] = nil
       end
     end
 
@@ -58,13 +66,14 @@ module Ast
     end
 
     # A static function, so can be used for symbols unattached to a scope
-    def Scope.sym_c_dump(sym, level=0)
+    def Scope.sym_c_dump(sym, level=0, init=nil)
       if sym.is_a?(Decl::Var)
-        return Scope.one_sym_c_dump(sym, level)
+        return Scope.one_sym_c_dump(sym, level, init)
       elsif sym.is_a?(Enumerable)
         result = ""
         sym.each_value do |s|
-          result += one_sym_c_dump(s, level)
+          i = init == nil ? nil : init[s.var_name]
+          result += one_sym_c_dump(s, level, i)
         end
       else
         raise "Symbol class (#{sym.class.to_s}) incorrect\n"
@@ -87,7 +96,7 @@ module Ast
 
     def c_dump(level=0)
       result = "  " *(level+1) + "/* #{self.class.to_s} #{@id}: #{@symbols.size} symbols, #{children.size} children */\n"
-      result += Scope.sym_c_dump(@symbols, level+1) + "\n"
+      result += Scope.sym_c_dump(@symbols, level+1, @inits) + "\n"
       children.each do |c|
         result += c.c_dump(level+1)
       end
@@ -104,8 +113,11 @@ module Ast
       @symbols[name] = sym
     end
 
-    def Scope.one_sym_c_dump(sym, level=0)
-      return "  " *level + "#{sym.c_dump};\n"
+    def Scope.one_sym_c_dump(sym, level=0, init = nil)
+      result = "  " *level + "#{sym.c_dump}"
+      result += " = #{init.c_dump}" if init != nil
+      result += ";\n"
+      return result
     end
   end
 

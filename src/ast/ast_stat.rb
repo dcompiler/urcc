@@ -8,8 +8,8 @@
 # Author:: Chen Ding
 # Created:: Feb. 8, 2009
 
-require "ast/ast_tree.rb"
-require "ast/ast_expr.rb"
+require_relative "./ast_tree.rb"
+require_relative "./ast_expr.rb"
 
 module Ast
 
@@ -59,17 +59,20 @@ module Ast
     attr_reader :target
 
     # If conditional go-to, the child is the conditonal expression.
-    def initialize(target_label, condition=nil)
+    def initialize(target_true_label, condition=nil, target_false_label=nil)
       if condition == nil
         super("goto_stat")
       else
         super("conditional_goto")
       end
-      RUtils::expect(target_label, String, "target label")
-      @target = target_label
+      RUtils::expect(target_true_label, String, "target label")
+      @target_true = target_true_label
+      @target_false = target_false_label
       if condition != nil
         RUtils::expect(condition, Expr, "Go-to condition")
         add_child(condition)
+      else
+        @target = @target_true
       end
     end
 
@@ -80,7 +83,9 @@ module Ast
     def c_dump(level=0)
       result = super(level)
       result += "if (#{condition.c_dump}) " if condition != nil
-      result += "goto #{@target};\n"
+      result += "goto #{@target_true};"
+      result += " else goto #{@target_false};" if condition != nil
+      result += "\n" 
     end
   end
 
