@@ -66,6 +66,12 @@ def parse_args( args )
     exit
   else
     options.filename = args.pop
+    if not options.filename.end_with?(".c")
+      puts "Unsupported filetype, please input a c file"
+
+      exit
+    end
+
   end
 
   return options
@@ -73,16 +79,31 @@ def parse_args( args )
 end
 
 
-# read in config file, return Hash with info
-def read_conf( config_path )
+# read in config file, return config info
+def parse_config( config_path )
+  begin
+    config = ParseConfig.new( config_path )
+  rescue
+    puts "No config file specified, using default config"
 
-  
+    # default config
+    d_config = Hash.new
+    d_config["CC"] = Hash.new
+    d_config["CC"]["cc"] = "clang"
+    d_config["CC"]["opt"] = "opt"
+    d_config["CC"]["clang_path"] = "/usr/bin/clang"
+    d_config["CC"]["opt_path"] = "/usr/bin/opt"
+
+    return d_config
+  end
+
+  return config.params
 
 end
 
 
 # wrapper for excute
-def exec( cmd )
+def execute( cmd )
   puts "#{cmd}"
   `#{cmd}`
 end
@@ -97,32 +118,70 @@ end
 
 
 ##################################
-# The main function for urcc 
+# Main function for urcc 
 ##################################
 def main
 
   # read args
   options = parse_args(ARGV)
+  filename = options.filename
+  file = filename.chomp(".c")
 
-  pp options
-  
+
   # read config for cc version and path
   config_path = 'urcc.config'
+  config = parse_config( config_path )
 
-  parse_config( config_path )
 
   # run cc to dump ir file
+  cc = config["CC"]["cc"]
+  opt = config["CC"]["opt"]
+  cc_flag = "-O0 -emit-llvm"
+  # TODO: why add reg2mem pass?
+  opt_flag = "-reg2mem -S" 
+  bitcode_file = "#{file}.ll"
+  execute "#{cc} #{cc_flag} -c #{filename} -o - | #{opt} #{opt_flag} -o #{bitcode_file}"
 
+ 
+  # parse bitcode file with URCCFE to get AST representation
+  prog = URCCFE.new(bitcode_file).astroot
 
-  # run URCCFE to parse AST representation
-
-
+  ##################################
   # run PASSes
+  ##################################
+  passes = config["PASS"]["pass"].split(",")
+
+  if not passes.empty?
+    passes.each do |passname|
+
+      # require pass
+      begin
+        passname.strip!
+        pass_path = File.join(config["PATH"]["pass_path"], passname)
+
+        if defined?(Pass)
+          PassModule.send(:remove_const, "Pass")
+        end
+        require_relative( pass_path )
+        include( PassModule )
+
+      rescue Exception => e
+        p e
+        puts "Error loading pass #{passname}"
+      end
+
+      # output prog
+      puts "-------------------------"
+      puts "Invoking #{passname} Pass"
+      puts "-------------------------"
+      PassModule::Pass.call( prog )
+
+      puts "\n"
+    end
+  end
 
 
   # run URCCFE to dump opted version
-
-
 
   # run cc to compile again
 
