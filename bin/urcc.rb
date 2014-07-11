@@ -125,7 +125,7 @@ def main
   # read args
   options = parse_args(ARGV)
   filename = options.filename
-  file = filename.chomp(".c")
+  filechomp = filename.chomp(".c")
 
 
   # read config for cc version and path
@@ -139,7 +139,7 @@ def main
   cc_flag = "-O0 -emit-llvm"
   # TODO: why add reg2mem pass?
   opt_flag = "-reg2mem -S" 
-  bitcode_file = "#{file}.ll"
+  bitcode_file = "#{filechomp}.ll"
   execute "#{cc} #{cc_flag} -c #{filename} -o - | #{opt} #{opt_flag} -o #{bitcode_file}"
 
  
@@ -182,8 +182,18 @@ def main
 
 
   # run URCCFE to dump opted version
+  opt_file = filechomp + "_urcc_opt.c"
+  f = File.new(opt_file, "w")
+  f << URCCFE.dump_prog(prog)
+  f.close
 
   # run cc to compile again
+  opt_bin = filechomp + ".bin"
+  
+  cc = config["CC"]["cc"]
+  opt = config["CC"]["opt"]
+  cc_flag = "-O0 -Wno-format-security -Wno-implicit-function-declaration"
+  execute "#{cc} #{cc_flag} -g #{opt_file} -o #{opt_bin}"
 
 
 end
