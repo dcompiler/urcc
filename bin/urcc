@@ -11,7 +11,7 @@ require "ostruct"
 require "pp"
 
 # The urcc frontend
-require "../lib/ir/urccfe.rb"
+require "ir/urccfe.rb"
 
 ##################################
 # Helper function definition
@@ -132,7 +132,6 @@ def main
   config_path = 'urcc.config'
   config = parse_config( config_path )
 
-
   # run cc to dump ir file
   cc = config["CC"]["cc"]
   opt = config["CC"]["opt"]
@@ -142,7 +141,6 @@ def main
   bitcode_file = "#{filechomp}.ll"
   execute "#{cc} #{cc_flag} -c #{filename} -o - | #{opt} #{opt_flag} -o #{bitcode_file}"
 
- 
   # parse bitcode file with URCCFE to get AST representation
   prog = URCCFE.new(bitcode_file).astroot
 
@@ -202,8 +200,6 @@ end
 
 
 # Run main 
-if __FILE__ == $0
 
-  main
+main
 
-end
