@@ -1,0 +1,23 @@
+syntax: glob
+*.run_test
+*.orig
+*.rej
+*~
+*.o
+*.a
+.DS_Store
+#*
+*.aux
+*.bbl
+*.blg
+*.log
+*.swp
+*.lof
+*.toc
+*.dvi
+.Rhistory
+.nfs00*
+
+syntax: regexp
+.*\#.*\#$
+\.*\#.*\#$

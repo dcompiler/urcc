@@ -1,0 +1,23 @@
+#!/usr/bin/ruby
+
+Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
+$LOAD_PATH.unshift(Urcc_path+"/src")
+$LOAD_PATH.unshift(Urcc_path+"/bin")
+
+require 'ssa/ssa'
+
+$Passes = $Passes || Array.new
+
+ssa_pass = Proc.new do |prog|
+  cfg = CFG.new(prog)
+  File.new("cfg.txt", "w").puts cfg.to_graph
+  ssa = SSAPass.new(cfg)
+  # tssa = TSSAPass.new(cfg)
+  puts cfg.c_dump
+  # opt = OptPass.new(cfg)
+  cfg.update_prog
+end
+
+$Passes << ["ssa", ssa_pass]
+
+load 'urcc'

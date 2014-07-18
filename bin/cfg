@@ -1,0 +1,24 @@
+#!/usr/bin/ruby
+
+Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
+$LOAD_PATH.unshift(Urcc_path+"/src")
+$LOAD_PATH.unshift(Urcc_path+"/bin")
+
+require 'cfg/cfg'
+
+$Passes = $Passes || Array.new
+
+cfg_pass = Proc.new do |prog|
+  cfg = CFG.new(prog)
+  graph = File.new("cfg.dot", "w")
+  graph.puts "digraph {"
+  graph.puts cfg.to_graph
+  graph.puts "}"
+  graph.close
+  cmd = "dot -o cfg.pdf -Tpdf cfg.dot"
+  `#{cmd}`
+end
+
+$Passes << ["cfg", cfg_pass]
+
+load 'urcc'
