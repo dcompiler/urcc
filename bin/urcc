@@ -1,92 +1,210 @@
 #!/usr/bin/ruby
 
-# URCC directory
-if not Module.const_defined?(:Urcc_path)
-  Urcc_path = File.expand_path( File.dirname(__FILE__) )[0..-5]
-  $LOAD_PATH.unshift(Urcc_path+"/src")
-end
+##################################
+# The main exec script for urcc
+# 
+##################################
 
-#LLVM_PATH = "/usr/bin"
-LLVM_PATH = "/localdisk/lxiang/llvm-3.3/bin"
-YOUR_CLANG = LLVM_PATH + "/clang"
-YOUR_LLVM_OPT = LLVM_PATH + "/opt"
+require "parseconfig"
+require "optparse"
+require "ostruct"
+require "pp"
 
-# The main driver for our urcc
-require_relative "../src/ir/urccfe.rb"
+# The urcc frontend
+require "ir/urccfe.rb"
 
-module Execute
-  def execute( cmd )
-    puts "#{cmd}"
-    `#{cmd}`
-  end
-end
+##################################
+# Helper function definition
+##################################
 
-include Execute
-
-def main
-  filename = ARGV[0]
-  if not filename or filename[-2..-1] != ".c" then
-    puts "Please specify a C file."
-    return
-  end
-
-  if not File.file?(filename) then
-    puts "File #{filename} does not exist."
-    return
-  end
+# parse input arg with optparse
+def parse_args( args )
   
-  if not File.file?(YOUR_CLANG) or not File.file?(YOUR_LLVM_OPT)
-    puts "Invalid clang/llvm path."
-    return
+  options = OpenStruct.new
+  options.inplace = false
+  options.encoding = "utf-8"
+  options.transfer_type = :auto
+  options.verbose = false
+  options.version = "0.0.0"
+
+  # construct parser
+  opt_parser = OptionParser.new do |opts|
+    opts.banner = "Usage: urcc <filename> [options]"
+    opts.separator ""
+
+    # option directory
+    opts.on("-d", "--dir DIR",
+            "Target directory") do |dir|
+      options.dir = dir
+    end
+
+    opts.on("-S", "--asm",
+            "Assemble to ir") do |ver|
+      options.asm = true
+    end
+
+    opts.on("-v", "--version",
+            "Print version number") do |v|
+      puts options.version
+      exit
+    end
+
+    opts.on("-h", "--help",
+            "Print this message") do |h|
+      puts opts
+      exit
+    end
+
   end
 
-  # we need a way to determine the location of our own gcc
-  clangversion = `#{YOUR_CLANG} --version`.split
-  if not ['3.3', '3.4'].include? clangversion[2]
-    puts "Please use clang 3.3+"
-    return
-  end 
+  opt_parser.parse!( args )
 
-  bitcode_file = "#{filename}.ll"
-  execute "#{YOUR_CLANG} -O0 -emit-llvm -c #{filename} -o - | #{YOUR_LLVM_OPT} -reg2mem -S -o #{bitcode_file}"
+  # specify input filename
+  if args.empty?
+    puts "Error: No file input. Please specify a c file."
+    puts opt_parser
+    exit
+  else
+    options.filename = args.pop
+    if not options.filename.end_with?( ".c" )
+      puts "Unsupported filetype, please input a c file"
 
+      exit
+    end
+
+  end
+
+  return options
+
+end
+
+
+# read in config file, return config info
+def parse_config( config_path )
+  begin
+    config = ParseConfig.new( config_path )
+  rescue
+    puts "No config file specified, using default config"
+
+    # default config
+    d_config = Hash.new
+    d_config["CC"] = Hash.new
+    d_config["CC"]["cc"] = "clang"
+    d_config["CC"]["opt"] = "opt"
+    d_config["CC"]["clang_path"] = "/usr/bin/clang"
+    d_config["CC"]["opt_path"] = "/usr/bin/opt"
+    d_config["PASS"] = Hash.new
+    d_config["PASS"]["pass_path"] = "."
+    d_config["PASS"]["pass"] = ""
+    
+    return d_config
+  end
+
+  return config.params
+
+end
+
+
+# wrapper for excute
+def execute( cmd )
+  puts "#{cmd}"
+  `#{cmd}`
+end
+
+
+# Run passes
+def run_passes( prog, config )
+  # get pass names
+  passes = config["PASS"]["pass"].split( "," )
+
+  # run passes
+  if not passes.empty?
+    passes.each do |passname|
+
+      # require pass, load pass module and pass Proc
+      begin
+        passname.strip!
+        pass_name = File.join(config["PASS"]["pass_path"], passname)
+
+        if defined?(Pass)
+          PassModule.send(:remove_const, "Pass")
+        end
+        require_relative( pass_name )
+        include( PassModule )
+
+      rescue Exception => e
+        p e
+        puts "Error loading pass #{passname}"
+      end
+
+      # call pass
+      puts "-------------------------"
+      puts "Invoking #{passname} Pass"
+      puts "-------------------------"
+      PassModule::Pass.call( prog )
+
+      puts "\n"
+    end
+  end
+
+end
+
+
+
+##################################
+# Main function for urcc 
+##################################
+def main
+
+  # read args
+  options = parse_args( ARGV )
+  filename = options.filename
+  filechomp = filename.chomp( ".c" )
+
+
+  # read config for cc version and path
+  config_path = 'urcc.config'
+  config = parse_config( config_path )
+
+  # run cc to dump ir file
+  cc = config["CC"]["cc"]
+  opt = config["CC"]["opt"]
+  cc_flag = "-O0 -emit-llvm"
+  # TODO: why add reg2mem pass?
+  opt_flag = "-reg2mem -S" 
+  bitcode_file = "#{filechomp}.ll"
+  execute "#{cc} #{cc_flag} -c #{filename} -o - | #{opt} #{opt_flag} -o #{bitcode_file}"
+
+  # parse bitcode file with URCCFE to get AST representation
   prog = URCCFE.new(bitcode_file).astroot
 
-  unopt_file = filename[0..-3]+"_urcc.c"
-  file = File.new(unopt_file, "w")
-  file << URCCFE.dump_prog(prog)
-  file.close
+  ##################################
+  # run PASSes
+  ##################################
+  run_passes(prog, config)
 
-  #execute "#{YOUR_CLANG} -O0 -Wno-format-security -g #{filename} -o #{filename[0..-3]}"
 
-  binary_file = unopt_file[0..-3] + ".bin"
-  execute "#{YOUR_CLANG} -O0 -Wno-format-security -Wno-implicit-function-declaration -g #{unopt_file} -o #{binary_file}"
+  # run URCCFE to dump opted version
+  opt_file = filechomp + "_urcc_opt.c"
+  f = File.new(opt_file, "w")
+  f << URCCFE.dump_prog( prog )
+  f.close
 
-  ######################################################
-  # Optimizations are here for "prog"
-
-  if $Passes != nil
-    $Passes.each do |opt| 
-      puts "invoking #{opt[0]} pass"
-      opt[1].call( prog )
-    end
-  else
-    puts 'no optimization specified'
-  end
-
-  ######################################################
-
-  opt_file = filename[0..-3]+"_urcc_opt.c"
-  file = File.new(opt_file, "w")
-  file << URCCFE.dump_prog(prog)
-  file.close
+  # run cc to compile again
+  opt_bin = filechomp + ".bin"
   
-  opt_binary_file = opt_file[0..-3] + ".bin" 
-  execute "#{YOUR_CLANG} -O0 -Wno-format-security -Wno-implicit-function-declaration -g #{opt_file} -o #{opt_binary_file}"
+  cc = config["CC"]["cc"]
+  opt = config["CC"]["opt"]
+  cc_flag = "-O0 -Wno-format-security -Wno-implicit-function-declaration"
+  execute "#{cc} #{cc_flag} -g #{opt_file} -o #{opt_bin}"
 
-  # enable the following lines if you do not want to keep 
-  # intermediate files
-  #`rm #{c_file}`
+
 end
 
+
+
+
+# Run main 
+
 main
+
