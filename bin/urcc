@@ -66,7 +66,7 @@ def parse_args( args )
     exit
   else
     options.filename = args.pop
-    if not options.filename.end_with?(".c")
+    if not options.filename.end_with?( ".c" )
       puts "Unsupported filetype, please input a c file"
 
       exit
@@ -93,7 +93,10 @@ def parse_config( config_path )
     d_config["CC"]["opt"] = "opt"
     d_config["CC"]["clang_path"] = "/usr/bin/clang"
     d_config["CC"]["opt_path"] = "/usr/bin/opt"
-
+    d_config["PASS"] = Hash.new
+    d_config["PASS"]["pass_path"] = "."
+    d_config["PASS"]["pass"] = ""
+    
     return d_config
   end
 
@@ -109,9 +112,40 @@ def execute( cmd )
 end
 
 
-# execute passes
-def passes( prog, pass )
+# Run passes
+def run_passes( prog, config )
+  # get pass names
+  passes = config["PASS"]["pass"].split( "," )
 
+  # run passes
+  if not passes.empty?
+    passes.each do |passname|
+
+      # require pass, load pass module and pass Proc
+      begin
+        passname.strip!
+        pass_name = File.join(config["PASS"]["pass_path"], passname)
+
+        if defined?(Pass)
+          PassModule.send(:remove_const, "Pass")
+        end
+        require_relative( pass_name )
+        include( PassModule )
+
+      rescue Exception => e
+        p e
+        puts "Error loading pass #{passname}"
+      end
+
+      # call pass
+      puts "-------------------------"
+      puts "Invoking #{passname} Pass"
+      puts "-------------------------"
+      PassModule::Pass.call( prog )
+
+      puts "\n"
+    end
+  end
 
 end
 
@@ -123,9 +157,9 @@ end
 def main
 
   # read args
-  options = parse_args(ARGV)
+  options = parse_args( ARGV )
   filename = options.filename
-  filechomp = filename.chomp(".c")
+  filechomp = filename.chomp( ".c" )
 
 
   # read config for cc version and path
@@ -147,42 +181,13 @@ def main
   ##################################
   # run PASSes
   ##################################
-  passes = config["PASS"]["pass"].split(",")
-
-  if not passes.empty?
-    passes.each do |passname|
-
-      # require pass
-      begin
-        passname.strip!
-        pass_path = File.join(config["PATH"]["pass_path"], passname)
-
-        if defined?(Pass)
-          PassModule.send(:remove_const, "Pass")
-        end
-        require_relative( pass_path )
-        include( PassModule )
-
-      rescue Exception => e
-        p e
-        puts "Error loading pass #{passname}"
-      end
-
-      # output prog
-      puts "-------------------------"
-      puts "Invoking #{passname} Pass"
-      puts "-------------------------"
-      PassModule::Pass.call( prog )
-
-      puts "\n"
-    end
-  end
+  run_passes(prog, config)
 
 
   # run URCCFE to dump opted version
   opt_file = filechomp + "_urcc_opt.c"
   f = File.new(opt_file, "w")
-  f << URCCFE.dump_prog(prog)
+  f << URCCFE.dump_prog( prog )
   f.close
 
   # run cc to compile again
