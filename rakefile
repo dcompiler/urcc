@@ -20,7 +20,14 @@ end
 
 task :install => [:config] do |t|
 
+  puts "Installing urcc..."
+
   sh "gem build urcc.gemspec"
   sh "gem install urcc-*.gem"
 
+end
+
+task :default => [:install] do |t|
+
+     
 end
