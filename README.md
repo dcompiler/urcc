@@ -23,14 +23,19 @@ Instead of writing LLVM passes, users could implement and test optimization pass
 
 # INSTALL
 
+Installation requires Ruby Rake installed. If you don't have rake, run following to install.
 
+```
+[sudo] gem install rake
+```
+
+And then run rake to install:
 
 ```
 git clone https://github.com/dcompiler/urcc.git
-cd urcc
-gem build urcc.gemspec
-[sudo] gem install urcc-*.gem
+rake install
 ```
+
 
 Test if your installation works.
 
