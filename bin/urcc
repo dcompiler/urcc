@@ -17,6 +17,54 @@ require "ir/urccfe.rb"
 # Helper function definition
 ##################################
 
+# Init configurations
+def init_conf( conf_dir )
+
+  begin
+    if File.exist?( conf_dir ) 
+      if not File.directory?( conf_dir )
+        puts "Error creating new conf directory, file exist?"
+      end
+
+    else
+      puts "Initializing config, creating new directory in " + conf_dir
+      Dir.mkdir( conf_dir )
+      Dir.mkdir( File.join(conf_dir, "PASSES") )
+    end
+    
+    # Writing default config
+    puts "Initializing config, creating config in " + conf_dir + "\n"
+    conf_path = File.join(conf_dir, "config")
+    config = File.open( conf_path, "w" )
+    
+    d_config = ParseConfig.new
+
+    d_config.add_to_group("CC", "cc", "clang")
+    d_config.add_to_group("CC", "opt", "opt")
+
+    d_config.add_to_group("OUTPUT", "unopt_ir", "true")
+    d_config.add_to_group("OUTPUT", "unopt_cdump", "true")
+    d_config.add_to_group("OUTPUT", "unopt_bin", "true")
+    d_config.add_to_group("OUTPUT", "opt_ir", "true")
+    d_config.add_to_group("OUTPUT", "opt_cdump", "true")
+    d_config.add_to_group("OUTPUT", "opt_bin", "true")
+
+    d_config.add_to_group("PASSES", 
+                          "pass_path",
+                          File.join(conf_dir, "PASSES"))
+    d_config.add_to_group("PASSES", "passes", "")
+
+    d_config.write( config )
+    config.close
+
+  rescue Exception => e
+    puts e
+    puts "Error initializing config file"
+  end
+
+end
+
+
 # parse input arg with optparse
 def parse_args( args )
   
@@ -85,19 +133,6 @@ def parse_config( config_path )
     config = ParseConfig.new( config_path )
   rescue
     puts "No config file specified, using default config"
-
-    # default config
-    d_config = Hash.new
-    d_config["CC"] = Hash.new
-    d_config["CC"]["cc"] = "clang"
-    d_config["CC"]["opt"] = "opt"
-    d_config["CC"]["clang_path"] = "/usr/bin/clang"
-    d_config["CC"]["opt_path"] = "/usr/bin/opt"
-    d_config["PASS"] = Hash.new
-    d_config["PASS"]["pass_path"] = "."
-    d_config["PASS"]["pass"] = ""
-    
-    return d_config
   end
 
   return config.params
@@ -115,7 +150,14 @@ end
 # Run passes
 def run_passes( prog, config )
   # get pass names
-  passes = config["PASS"]["pass"].split( "," )
+  all_passes = config["PASSES"]["passes"]
+  
+  if all_passes == nil
+    puts "\nno passes specified. Keep going\n\n"
+    return
+  else
+    passes = all_passes.split( "," )
+  end
 
   # run passes
   if not passes.empty?
@@ -124,12 +166,13 @@ def run_passes( prog, config )
       # require pass, load pass module and pass Proc
       begin
         passname.strip!
-        pass_name = File.join(config["PASS"]["pass_path"], passname)
+        pass_dir = File.join(ENV["HOME"], ".urcc/PASSES")
+        pass_file = File.join(pass_dir, passname)
 
         if defined?(Pass)
           PassModule.send(:remove_const, "Pass")
         end
-        require_relative( pass_name )
+        require_relative( pass_file )
         include( PassModule )
 
       rescue Exception => e
@@ -138,12 +181,17 @@ def run_passes( prog, config )
       end
 
       # call pass
-      puts "-------------------------"
-      puts "Invoking #{passname} Pass"
-      puts "-------------------------"
-      PassModule::Pass.call( prog )
-
-      puts "\n"
+      begin
+        puts "\n-------------------------"
+        puts "Invoking #{passname} Pass"
+        puts "-------------------------\n\n"
+        PassModule::Pass.call( prog )
+        puts "\n-------------------------\n\n"
+        
+      rescue Exception => e
+        puts e
+        puts "Error executing pass #{passname}, skipping"
+      end
     end
   end
 
@@ -156,6 +204,14 @@ end
 ##################################
 def main
 
+  # init configuration
+  config_dir = File.join(ENV["HOME"], ".urcc/")
+  config_path = File.join(config_dir, "urcc.config")
+
+  #if not File.exist?( config_path )
+  #  init_conf( config_dir )
+  #end
+
   # read args
   options = parse_args( ARGV )
   filename = options.filename
@@ -163,8 +219,8 @@ def main
 
 
   # read config for cc version and path
-  config_path = 'urcc.config'
   config = parse_config( config_path )
+
 
   # run cc to dump ir file
   cc = config["CC"]["cc"]
@@ -173,10 +229,13 @@ def main
   # TODO: why add reg2mem pass?
   opt_flag = "-reg2mem -S" 
   bitcode_file = "#{filechomp}.ll"
+
+  # TODO: selective dump files according to config
   execute "#{cc} #{cc_flag} -c #{filename} -o - | #{opt} #{opt_flag} -o #{bitcode_file}"
 
   # parse bitcode file with URCCFE to get AST representation
   prog = URCCFE.new(bitcode_file).astroot
+
 
   ##################################
   # run PASSes
@@ -185,6 +244,7 @@ def main
 
 
   # run URCCFE to dump opted version
+  # TODO: selective dump files according to config
   opt_file = filechomp + "_urcc_opt.c"
   f = File.new(opt_file, "w")
   f << URCCFE.dump_prog( prog )

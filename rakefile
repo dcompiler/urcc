@@ -1,0 +1,33 @@
+
+
+task :config do |t|
+
+  config_dir = "#{ENV["HOME"]}/.urcc"
+  config_file = File.join(config_dir, "urcc.config")
+  config_pass = File.join(config_dir, "PASSES")
+
+  puts "Setting up config directory and files"
+
+  if not File.exist?(config_dir)
+      mkdir config_dir
+  end
+
+  sh "cp bin/config/urcc.config #{config_file}"
+  sh "cp -R bin/config/PASSES #{config_dir}"
+
+end
+
+
+task :install => [:config] do |t|
+
+  puts "Installing urcc..."
+
+  sh "gem build urcc.gemspec"
+  sh "gem install urcc-*.gem"
+
+end
+
+task :default => [:install] do |t|
+
+     
+end
