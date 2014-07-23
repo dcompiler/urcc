@@ -16,9 +16,9 @@ version: 0.0.0
 
 # INTRO
 
-URCC is a simple compiler tool built for LLVM, in Ruby. It parses IR representation that LLVM emits, and add user-defined passes for optimization.
+URCC is a source-to-source C compiler written in Ruby. It can use GCC and LLVM as front-ends.  The current distribution assumes the use of the LLVM, which it uses to parse C source code into LLVM IR.  Then it creates the URCC intermediate representation and supports user-defined passes for optimization.  It generates C code after optimization.
 
-Instead of writing LLVM passes, users could implement and test optimization passes in ruby, which is ideal for algorithm verifications, studying, and teaching.
+Instead of writing compiler passes in C/C++, users could implement and test optimization passes in Ruby, which is easier to program and experiment and helps compiler prototyping and teaching.
 
 
 # INSTALL
