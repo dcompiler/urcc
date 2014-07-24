@@ -36,13 +36,17 @@ git clone https://github.com/dcompiler/urcc.git
 rake install
 ```
 
-
 Test if your installation works.
 
 ```
 urcc --version
 ```
 
+If URCC executable doesn't work, try adding your Gem bin path to your PATH. Use the following command to find about your Gem bin path:
+
+```
+ruby -e "puts Gem.bindir"
+```
 
 # QUICK START
 
