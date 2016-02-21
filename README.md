@@ -23,10 +23,11 @@ Instead of writing compiler passes in C/C++, users could implement and test opti
 
 # INSTALL
 
-Installation requires Ruby Rake installed. If you don't have rake, run following to install.
+Installation requires Ruby Rake and ParseConfig installed. If you don't have them, run following to install.
 
 ```
 [sudo] gem install rake
+[sudo] gem install parseconfig
 ```
 
 And then run rake to install:
