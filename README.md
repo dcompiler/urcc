@@ -86,3 +86,15 @@ end
 ```
 
 To include this pass, save it as "HelloWorld.rb" under PASSES directory, and add HelloWorld to config file PASSES > passes.
+
+## IR documentation
+
+The intermedite representation (IR) is abstract syntax tree (AST).  An easy way to browse AST classes and functions is to use rdoc to generate code documentation:
+
+```
+cd [repos]/lib/ast
+rdoc *.rb
+```
+
+Open doc/table_of_contents.html in a Web browser.
+
