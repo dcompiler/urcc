@@ -246,9 +246,9 @@ def main
   # run URCCFE to dump opted version
   # TODO: selective dump files according to config
   opt_file = filechomp + "_urcc_opt.c"
-  f = File.new(opt_file, "w")
-  f << URCCFE.dump_prog( prog )
-  f.close
+  File.open(opt_file, "w") do |f|
+    f << URCCFE.dump_prog( prog )
+  end
 
   # run cc to compile again
   opt_bin = filechomp + ".bin"
