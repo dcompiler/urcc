@@ -17,8 +17,14 @@ task :config do |t|
 
 end
 
+task :dependencies do |t|
 
-task :install => [:config] do |t|
+  sh "gem install parseconfig"
+
+end
+
+
+task :install => [:config, :dependencies] do |t|
 
   puts "Installing urcc..."
 

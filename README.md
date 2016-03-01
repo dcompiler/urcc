@@ -37,13 +37,17 @@ git clone https://github.com/dcompiler/urcc.git
 rake install
 ```
 
-
 Test if your installation works.
 
 ```
 urcc --version
 ```
 
+If URCC executable doesn't work, try adding your Gem bin path to your PATH. Use the following command to find about your Gem bin path:
+
+```
+ruby -e "puts Gem.bindir"
+```
 
 # QUICK START
 
@@ -73,7 +77,8 @@ A pass should be defined as a ruby Proc named 'Pass', inside a module named 'Pas
 Following is an example pass which does nothing.
 
 ```ruby
-# Define a HelloWorld pass                                                                                                              
+# Define a HelloWorld pass
+
 module PassModule
 
   Pass = Proc.new do |prog|
