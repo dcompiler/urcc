@@ -1,7 +1,7 @@
 require "ast/ast_scope.rb"
 require "ast/ast_stat.rb"
 require "ast/ast_expr.rb"
-require "graphviz"
+require "ruby-graphviz"
 
 module PassModule
 
@@ -23,16 +23,7 @@ module PassModule
       add_stmt chld
     end
     def to_s
-      if out_blocks[0] == nil
-        label.label + "->\n\t" + 
-        stmts.map(&:c_dump).join("\t") + "-> " +
-        "nil" + "\n\n"
-      else
-        label.label + "->\n\t" + 
-        stmts.map(&:c_dump).join("\t") + "-> " +
-        out_blocks.map(&:label).map(&:label).join(", ") +
-        "\n\n"
-      end
+      stmts.map(&:c_dump).join("")
     end
   end
 
@@ -109,10 +100,22 @@ module PassModule
     funcs = prog.children_copy.map do |chld|
       Function.new chld
     end
+    g = GraphViz.new(:G, :type => :digraph)
     funcs.each do |func|
-      puts "BEGIN\t" +func.val.id
-      func.basic_blocks.each do |bb| puts bb.to_s end
-      puts "END\t" + func.val.id
+      graph_nodes = []
+      graph_index_hash = Hash.new
+      func.basic_blocks.each_with_index do |bb, index| 
+        graph_nodes << g.add_nodes(func.val.id + ":\n" + bb.to_s)
+        graph_index_hash[bb.label.label] = index
+      end
+      func.basic_blocks.each do |bb|
+        bb.out_blocks.each do |out|
+          g1 = graph_nodes[graph_index_hash[bb.label.label]]
+          g2 = graph_nodes[graph_index_hash[out.label.label]]
+          g.add_edges(g1, g2)
+        end
+      end
     end
+    g.output( :png => "cfg.png")
   end
 end
