@@ -23,7 +23,7 @@ module PassModule
       add_stmt chld
     end
     def to_s
-      "#{label.label}:\n\nbody:\n#{stmts.map(&:c_dump).join("")}"
+      "#{label.label}:\n\n#{stmts.map(&:c_dump).join("")}"
     end
   end
 
@@ -64,7 +64,8 @@ module PassModule
         start_bb stmt
       end
     end
-
+    
+    # link all the basic blocks to their children
     def link_bbs
       basic_blocks.each do |bb|
         out_stmt = bb.out
@@ -95,14 +96,11 @@ module PassModule
     end 
   end
 
-  leaders = []
   Pass = Proc.new do |prog|
-    index = 0;
-    next_leader = true
-    in_block = false
     funcs = prog.children_copy.map do |chld|
       Function.new chld
     end
+    #create graph
     g = GraphViz.new(:G, :type => :digraph)
     funcs.each do |func|
       graph_nodes = []
