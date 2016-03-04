@@ -23,7 +23,7 @@ module PassModule
       add_stmt chld
     end
     def to_s
-      stmts.map(&:c_dump).join("")
+      "#{label.label}:\n\nbody:\n#{stmts.map(&:c_dump).join("")}"
     end
   end
 
@@ -53,7 +53,10 @@ module PassModule
 
     def process_stmt stmt
       case stmt.class.name
-      when "Ast::GotoStat", "Ast::ReturnStat"
+      when "Ast::GotoStat"
+        fin_bb stmt
+      when "Ast::ReturnStat"
+        @cur_bb << stmt
         fin_bb stmt
       when "Ast::AssignStat"
         @cur_bb << stmt
@@ -105,7 +108,7 @@ module PassModule
       graph_nodes = []
       graph_index_hash = Hash.new
       func.basic_blocks.each_with_index do |bb, index| 
-        graph_nodes << g.add_nodes(func.val.id + ":\n" + bb.to_s)
+        graph_nodes << g.add_nodes(func.val.id + "();" + bb.to_s)
         graph_index_hash[bb.label.label] = index
       end
       func.basic_blocks.each do |bb|
