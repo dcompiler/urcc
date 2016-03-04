@@ -3,7 +3,7 @@
 \#*#
 
 # Project generated
-*.urcc
+*.urcc*
 
 # For ruby
 *.gem
