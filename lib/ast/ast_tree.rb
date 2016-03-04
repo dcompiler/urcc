@@ -19,6 +19,7 @@
 module Ast
 
 class Node
+  include Enumerable
   attr_reader :id, :parent
   attr_accessor :tags
   # uncomment this for debugging
