@@ -20,6 +20,7 @@ module Ast
     end
   end
 
+  # exp statement should really be a seperate class
   class AssignStat < Stat
 
     # The two children are in the order of RHS and LHS.  It is the
@@ -57,6 +58,8 @@ module Ast
 
   class GotoStat < Stat
     attr_reader :target
+    attr_reader :target_true
+    attr_reader :target_false
 
     # If conditional go-to, the child is the conditonal expression.
     def initialize(target_true_label, condition=nil, target_false_label=nil)
@@ -78,6 +81,10 @@ module Ast
 
     def condition
       return children[0]
+    end
+
+    def is_cond?
+      return condition != nil
     end
 
     def c_dump(level=0)
