@@ -54,9 +54,6 @@ module Ast
       result += "#{lhs.c_dump} = " if lhs != nil
       result += "#{rhs.c_dump};\n"
     end
-    def is_exp?
-      return lhs == nil
-    end
   end
 
   class GotoStat < Stat
